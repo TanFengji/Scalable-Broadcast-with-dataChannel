@@ -1,3 +1,5 @@
+var http = require("http");
+var https = require("https");
 var app = require("http").createServer();
 var io = require("socket.io")(app);
 //user stores all the sockets
@@ -5,6 +7,22 @@ var user = {};
 //room stores all the room id
 var room = {};
 var admin;
+var options = {
+		host: "https://service.xirsys.com/ice", 
+		ident : "qwerty",
+		secret : "53253e00-31f8-11e6-ae89-abe6e64b2707",
+		domain : "www.thegeeksnextdoor.co",
+		application : "default",
+		room : "default",
+		secure : 0,
+		port: 443
+}
+
+var prot = options.port == 443 ? https : http;
+var req = prot.request(options, function(data, status)
+		{
+	console.log(data);
+		});
 
 app.listen(8080);
 
