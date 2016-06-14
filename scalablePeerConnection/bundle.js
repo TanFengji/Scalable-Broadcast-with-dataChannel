@@ -8,15 +8,17 @@ function AllConnection(){
 	var local;
 	var stream;
 	var socket;
+	var configuration;
 	this.connection = {};
 	this.indicator = new Indicator();
 	var localVideo;
 }
 
 //initialise the setup of AllConnection
-AllConnection.prototype.init = function(user, socket){
+AllConnection.prototype.init = function(user, socket, config){
 	this.local = user;
 	this.socket = socket;
+	this.configuration = config;
 }
 
 //initialise the setup of own camera
@@ -49,7 +51,7 @@ AllConnection.prototype.initCamera = function(cb){
 //initialise a connection with peers
 AllConnection.prototype.initConnection = function(peer){	
 	var self = this;
-	self.connection[peer] = new PeerConnection(self.local, peer, self.socket, self.localVideo);
+	self.connection[peer] = new PeerConnection(self.local, peer, self.socket, self.localVideo, self.configuration);
 	self.initCamera(function(){
 		self.connection[peer].startConnection(function(){
 			self.connection[peer].openDataChannel(function(){
@@ -76,7 +78,7 @@ AllConnection.prototype.onOffer = function(sdpOffer, cb){
 	self.localVideo = document.getElementById("localVideo");
 	self.localVideo.autoplay = true;
 	peer = sdpOffer.remote;
-	self.connection[peer] = new PeerConnection(self.local, peer, self.socket, self.localVideo);
+	self.connection[peer] = new PeerConnection(self.local, peer, self.socket, self.localVideo, self.configuration);
 	self.connection[peer].startConnection(function(){
 		self.connection[peer].openDataChannel(function(){
 			self.connection[peer].visitorSetupPeerConnection(peer, /*function(stream){
@@ -109,6 +111,11 @@ AllConnection.prototype.onCandidate = function(iceCandidate){
 
 AllConnection.prototype.deleteConnection = function(peer){
 	self.connection[peer] = null;
+}
+
+//set the ICE server 
+AllConnection.prototype.setIceServer = function(iceServers){
+	this.iceServers = iceServers;
 }
 
 module.exports = AllConnection;
@@ -7381,7 +7388,7 @@ function toArray(list, index) {
 
 },{}],51:[function(require,module,exports){
 
-function PeerConnection(local, peer, socket, localVideo){
+function PeerConnection(local, peer, socket, localVideo, config){
 	var p2pConnection;
 	var indicator;
 	var dataChannel;
@@ -7389,13 +7396,7 @@ function PeerConnection(local, peer, socket, localVideo){
 	this.remote = peer;
 	this.socket = socket;
 	this.localVideo = localVideo;
-	this.configuration = {
-			"iceServers": [{ 
-			"credential": "aed9a3ac-31f9-11e6-9ed0-6cf1b3d414d3",
-			"url": "turn:turn02.uswest.xirsys.com:80?transport=udp",
-			"username": "aed9a316-31f9-11e6-8b25-3ad12cf92d7c"
-			}]
-	};
+	this.configuration = config;
 	console.log("local video is " + localVideo);
 }
 
@@ -7662,7 +7663,7 @@ WebRTC.prototype.login = function(userName, successCallback, failCallback) {
 	this.socket.on("login", function(loginResponse){
 		if (loginResponse.status === "success") {
 			self.user = loginResponse.userName;
-			self.allConnection.init(loginResponse.userName, self.socket);
+			self.allConnection.init(loginResponse.userName, self.socket, loginResponse.config);
 			successCallback();
 		} else if (loginResponse.status === "fail") {
 			failCallback();
@@ -7730,6 +7731,11 @@ WebRTC.prototype.addVideo = function(){
 	console.log(self.allConnection.connection[self.peer]);
 	console.log(self.allConnection.stream);
 	this.allConnection.connection[self.peer].addVideo(self.allConnection.stream);
+}
+
+WebRTC.prototype.setIceServer = function(iceServers){
+	this.allConnection.setIceServer(iceServers);
+	console.log(iceServers);
 }
 
 /*

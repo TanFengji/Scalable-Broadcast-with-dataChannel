@@ -61,6 +61,11 @@ function sendMessage(e){
 	}	
 }
 
+function setIceServer(iceServers){
+	webrtc.setIceServer(iceServers);
+}
+
+
 webrtc.onMessage = function(messageData) {
 	document.getElementById("message").value = messageData.content;
 }

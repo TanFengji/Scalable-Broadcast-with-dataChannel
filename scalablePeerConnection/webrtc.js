@@ -81,7 +81,7 @@ WebRTC.prototype.login = function(userName, successCallback, failCallback) {
 	this.socket.on("login", function(loginResponse){
 		if (loginResponse.status === "success") {
 			self.user = loginResponse.userName;
-			self.allConnection.init(loginResponse.userName, self.socket);
+			self.allConnection.init(loginResponse.userName, self.socket, loginResponse.config);
 			successCallback();
 		} else if (loginResponse.status === "fail") {
 			failCallback();
@@ -149,6 +149,11 @@ WebRTC.prototype.addVideo = function(){
 	console.log(self.allConnection.connection[self.peer]);
 	console.log(self.allConnection.stream);
 	this.allConnection.connection[self.peer].addVideo(self.allConnection.stream);
+}
+
+WebRTC.prototype.setIceServer = function(iceServers){
+	this.allConnection.setIceServer(iceServers);
+	console.log(iceServers);
 }
 
 /*

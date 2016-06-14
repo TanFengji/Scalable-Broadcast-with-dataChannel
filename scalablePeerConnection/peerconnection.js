@@ -1,5 +1,5 @@
 
-function PeerConnection(local, peer, socket, localVideo){
+function PeerConnection(local, peer, socket, localVideo, config){
 	var p2pConnection;
 	var indicator;
 	var dataChannel;
@@ -7,13 +7,7 @@ function PeerConnection(local, peer, socket, localVideo){
 	this.remote = peer;
 	this.socket = socket;
 	this.localVideo = localVideo;
-	this.configuration = {
-			"iceServers": [{ 
-			"credential": "aed9a3ac-31f9-11e6-9ed0-6cf1b3d414d3",
-			"url": "turn:turn02.uswest.xirsys.com:80?transport=udp",
-			"username": "aed9a316-31f9-11e6-8b25-3ad12cf92d7c"
-			}]
-	};
+	this.configuration = config;
 	console.log("local video is " + localVideo);
 }
 

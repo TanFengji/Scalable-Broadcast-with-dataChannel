@@ -5,15 +5,17 @@ function AllConnection(){
 	var local;
 	var stream;
 	var socket;
+	var configuration;
 	this.connection = {};
 	this.indicator = new Indicator();
 	var localVideo;
 }
 
 //initialise the setup of AllConnection
-AllConnection.prototype.init = function(user, socket){
+AllConnection.prototype.init = function(user, socket, config){
 	this.local = user;
 	this.socket = socket;
+	this.configuration = config;
 }
 
 //initialise the setup of own camera
@@ -46,7 +48,7 @@ AllConnection.prototype.initCamera = function(cb){
 //initialise a connection with peers
 AllConnection.prototype.initConnection = function(peer){	
 	var self = this;
-	self.connection[peer] = new PeerConnection(self.local, peer, self.socket, self.localVideo);
+	self.connection[peer] = new PeerConnection(self.local, peer, self.socket, self.localVideo, self.configuration);
 	self.initCamera(function(){
 		self.connection[peer].startConnection(function(){
 			self.connection[peer].openDataChannel(function(){
@@ -73,7 +75,7 @@ AllConnection.prototype.onOffer = function(sdpOffer, cb){
 	self.localVideo = document.getElementById("localVideo");
 	self.localVideo.autoplay = true;
 	peer = sdpOffer.remote;
-	self.connection[peer] = new PeerConnection(self.local, peer, self.socket, self.localVideo);
+	self.connection[peer] = new PeerConnection(self.local, peer, self.socket, self.localVideo, self.configuration);
 	self.connection[peer].startConnection(function(){
 		self.connection[peer].openDataChannel(function(){
 			self.connection[peer].visitorSetupPeerConnection(peer, /*function(stream){
@@ -106,6 +108,11 @@ AllConnection.prototype.onCandidate = function(iceCandidate){
 
 AllConnection.prototype.deleteConnection = function(peer){
 	self.connection[peer] = null;
+}
+
+//set the ICE server 
+AllConnection.prototype.setIceServer = function(iceServers){
+	this.iceServers = iceServers;
 }
 
 module.exports = AllConnection;
