@@ -4,7 +4,7 @@ import (
     "fmt"
     "encoding/json"
     "net"
-    "os"
+	"bufio"
 )
 
 type PeerInfo struct {
@@ -20,50 +20,49 @@ type UserInfo struct {
     Latency []PeerInfo `json:"latency"`
 }
 
-
 const (
     CONN_HOST = "localhost"
-    CONN_PORT = "3333"
+    CONN_PORT = "8889"
     CONN_TYPE = "tcp"
 )
+
+var peer PeerInfo
 
 func main() {
     // Listen for incoming connections.
     listener, err := net.Listen(CONN_TYPE, CONN_HOST+":"+CONN_PORT)
     
     if err != nil {
-	fmt.Println("Error listening:", err.Error())
-	os.Exit(1)
+		fmt.Println("Error listening:", err.Error())
     }
     
     // Close the listener when the application closes.
     defer listener.Close()
-    fmt.Println("Listening on " + CONN_HOST + ":" + CONN_PORT)
     
     for {
 	// Listen for an incoming connection.
 	conn, err := listener.Accept()
+
 	if err != nil {
 	    fmt.Println("Error accepting: ", err.Error())
-	    //os.Exit(1)
 	    continue
 	}
+
 	// Handle connections in a new goroutine.
-	go handleRequest(listener)
+	go handleRequest(conn)
     }
 }
 
 // Handles incoming requests.
 func handleRequest(conn net.Conn) {
     defer conn.Close()
-    // Make a buffer to hold incoming data.
-    buf := make([]byte, 1024)
-    // Read the incoming connection into the buffer.
-    reqLen, err := conn.Read(buf)
-    if err != nil {
-	fmt.Println("Error reading:", err.Error())
-    }
-    // Send a response back to person contacting us.
-    conn.Write([]byte("Message received."))
-    // Close the connection when you're done with it.
+
+	input := bufio.NewScanner(conn)
+
+	for input.Scan() {
+		text := input.Text()
+		byte_text := []byte(text)
+		json.Unmarshal(byte_text, &peer)
+		fmt.Fprintf(conn, "Peer: %s \t Latency: %d \n ", peer.Peer, peer.Latency)
+	}
 }
