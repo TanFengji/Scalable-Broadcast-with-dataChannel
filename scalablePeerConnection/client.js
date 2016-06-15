@@ -1,4 +1,4 @@
-webrtc = new WebRTC("localhost:8080");
+webrtc = new WebRTC("https://www.thegeeksnextdoor.co:8080");
 
 function sendName(e){
 	if (e.keyCode == 13) {
