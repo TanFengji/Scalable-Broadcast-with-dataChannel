@@ -29,8 +29,6 @@ AllConnection.prototype.initCamera = function(cb){
 			navigator.getUserMedia({ video: true, audio: true }, function (stream) {
 				self.localVideo.src = window.URL.createObjectURL(stream);
 				self.stream = stream;
-				console.log("stream is ");
-				console.log(stream);
 				cb();
 			}, function (error) {
 				console.log(error);
@@ -48,20 +46,18 @@ AllConnection.prototype.initCamera = function(cb){
 //initialise a connection with peers
 AllConnection.prototype.initConnection = function(peer){	
 	var self = this;
+	self.localVideo = document.getElementById("localVideo");
+	self.localVideo.autoplay = true;
 	self.connection[peer] = new PeerConnection(self.local, peer, self.socket, self.localVideo, self.configuration);
-	self.initCamera(function(){
-		self.connection[peer].startConnection(function(){
-			self.connection[peer].openDataChannel(function(){
-				console.log("initiate connection");
-				self.connection[peer].hostSetupPeerConnection(peer, self.stream, function(){
-					self.connection[peer].makeOffer( function(offer){
-						console.log("send offer to " + peer);
-						self.socket.emit("SDPOffer", {
-							type: "SDPOffer",
-							local: self.local,
-							remote: peer,
-							offer: offer
-						});
+	self.connection[peer].startConnection(function(){
+		self.connection[peer].openDataChannel(function(){
+			self.connection[peer].hostSetupPeerConnection(peer, self.stream, function(){
+				self.connection[peer].makeOffer( function(offer){
+					self.socket.emit("SDPOffer", {
+						type: "SDPOffer",
+						local: self.local,
+						remote: peer,
+						offer: offer
 					});
 				});
 			});
@@ -97,7 +93,7 @@ AllConnection.prototype.onOffer = function(sdpOffer, cb){
 }
 
 //when receive an spd answer
-AllConnection.prototype.onAnswer = function(sdpAnswer){
+AllConnection.prototype.onAnswer = function(sdpAnswer, cb){
 	this.connection[sdpAnswer.remote].receiveAnswer(sdpAnswer.answer);
 }
 

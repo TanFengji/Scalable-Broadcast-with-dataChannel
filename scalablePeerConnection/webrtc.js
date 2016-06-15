@@ -5,8 +5,51 @@ function WebRTC(server){
 	var self = this;
 	var user;
 	var peer;
+	var peerList;
+	this.latencyList = [];
+	this.peerNo = 0;
+	this.connectionBuilt = 0;
+	//this.latencyList = {};
+	this.latencyListSize = 0;
 	this.allConnection = new AllConnection();;
 	this.socket = io(server);
+
+	// when a datachannel setup ready
+	self.socket.on("dataChannelStatus", function(dataChannelStatusData){
+		if (dataChannelStatusData.status === "success"){
+			self.connectionBuilt++;
+			if (self.connectionBuilt === self.peerNo){
+				self.sendTimeStamp();
+			}
+		}
+	});
+
+	// when user and a peer finish transfering their time stamp
+	self.socket.on("timeStamp", function(timeStampData){
+		var timeStamp = {};
+		timeStamp.peer = timeStampData.peer;
+		timeStamp.latency = timeStampData.receiveTime - timeStampData.sendTime;
+		self.latencyList.push(timeStamp);
+							
+ /* self.latencyList[timeStampData.peer] = {};
+  * self.latencyList[timeStampData.peer].peer = timeStampData.peer; 
+	*	self.latencyList[timeStampData.peer].latency = timeStampData.receiveTime - timeStampData.sendTime;*/
+		self.latencyListSize++ ; 
+		if (self.latencyListSize === self.peerNo){
+			for (var a in self.latencyList){
+				console.log(a);
+				console.log("Latency: " + self.latencyList[a].latency);
+			}
+			
+			self.socket.emit("newUser", {
+				type: "newUser",
+				user: self.user,
+				latency: self.latencyList
+			});
+		}
+		
+
+	});
 
 	//responde to different socket received from server
 
@@ -106,12 +149,25 @@ WebRTC.prototype.joinRoom = function(roomId, successCallback, failCallback) {
 	this.socket.emit("joinRoom", roomId);
 	this.socket.on("joinRoom", function(joinRoomResponse){
 		if (joinRoomResponse.status === "success") {
+			self.peerList = joinRoomResponse.userList;
 			self.socket.emit("message", {
 				type: "message",
 				action: "join",
 				user: self.user,
 				content: ""
 			});
+
+			for (var peer in self.peerList){
+				if (peer){
+					self.peerNo++;
+				}
+			}
+
+			console.log(self.peerNo);
+			for (var peer in self.peerList){
+				self.allConnection.initConnection(peer);
+			}
+			console.log("finish");
 			successCallback();
 		} else if (joinRoomResponse.status === "fail") {
 			failCallback();
@@ -154,6 +210,18 @@ WebRTC.prototype.addVideo = function(){
 WebRTC.prototype.setIceServer = function(iceServers){
 	this.allConnection.setIceServer(iceServers);
 	console.log(iceServers);
+}
+
+WebRTC.prototype.sendTimeStamp = function(){
+	for (var peer in this.peerList){
+		var time = Date.now();
+		var timeStamp = {
+				type: "timeStamp",
+				sendTime: time
+		}
+		timeStamp = JSON.stringify(timeStamp);
+		this.allConnection.connection[peer].dataChannel.send(timeStamp);
+	}
 }
 
 /*

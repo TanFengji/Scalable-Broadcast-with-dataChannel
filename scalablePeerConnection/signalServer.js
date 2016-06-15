@@ -25,10 +25,7 @@ var opts = {
 };
 
 request.get(opts, function(error, response, body){
-	//configuration = body.d;
-	configuration = {"iceServers": [{ "url": "stun:stun.1.google.com:19302"
-	}]}
-	console.log(configuration);
+	configuration = body.d;
 });
 
 app.listen(8080);
@@ -49,7 +46,6 @@ io.on("connection", function(socket){
 					status: "fail"
 				});
 
-				console.log("Login unsuccessfully");
 			} else{
 				user[userName] = socket;
 				user[userName].userName = userName;
@@ -112,14 +108,26 @@ status: "fail"
 				user[socket.userName].room = roomId;
 				user[socket.userName].join(roomId); 
 
-				admin.emit("newUser", {
+				/*admin.emit("newUser", {
 					type: "newUser",
 					userName: socket.userName,
 					host:	room[roomId].host
-				});
+				});*/
+
+				var clientSockets = io.sockets.adapter.rooms[roomId].sockets; 
+
+				var userList = {};
+
+				for (var clientSocket in clientSockets){
+					userName = io.sockets.connected[clientSocket].userName;
+					if (socket.userName !== userName){
+						userList[userName] = userName;
+					}
+				}
 
 				socket.emit("joinRoom", {
 					type: "joinRoom",
+					userList: userList,
 					userName: socket.userName,
 					status: "success"
 				});
@@ -139,8 +147,6 @@ status: "fail"
 //	an user send an offer to peer
 	socket.on("SDPOffer", function(sdpOffer){
 
-		console.log(sdpOffer.local + " is Sending offer to " + sdpOffer.remote);
-
 		try {
 			if (user[sdpOffer.remote]){
 				user[sdpOffer.remote].emit("SDPOffer", {
@@ -158,7 +164,6 @@ status: "fail"
 
 //	an user send an answer to peer
 	socket.on("SDPAnswer", function(sdpAnswer){
-		console.log( sdpAnswer.remote + " is Receiving Answer from " + sdpAnswer.local);
 
 		try {
 			if (user[sdpAnswer.remote]){
@@ -178,16 +183,13 @@ status: "fail"
 
 //	an user send an ICECandidate to peer
 	socket.on("candidate", function(iceCandidate){
-		console.log("an ice candidate is transfered");
-		console.log(iceCandidate.local);
-		console.log(iceCandidate.remote);
 		user[iceCandidate.remote].emit("candidate", {
 			type: "candidate",
 			local: iceCandidate.remote,
 			remote: iceCandidate.local,
 			candidate: iceCandidate.candidate
 		});
-	})
+	});
 
 //	an user disconnect
 	socket.on("disconnect", function(){
@@ -210,7 +212,6 @@ status: "fail"
 //	a new peer connection is asked to be built
 	socket.on("newPeerConnection", function(userData){
 		try {
-			console.log("host is " + userData.host + " and username is " + userData.userName);
 			user[userData.host].emit("initConnection", userData.userName);
 			//	console.log("User " + command[1] + " initialise connection to user " + command[2]);
 		} catch(e){
@@ -222,7 +223,7 @@ status: "fail"
 //	a peer connection is asked to be deleted
 	socket.on("deletePeerConnection", function(userData){
 		try {
-			console.log("peer is " + userData.peer + " and username is " + userData.userName);
+
 			user[userData.userName].emit("deleteConnection", userData.userName);
 			//	console.log("User " + command[1] + " initialise connection to user " + command[2]);
 		} catch(e){
@@ -232,7 +233,6 @@ status: "fail"
 
 //	a user send a message
 	socket.on("message", function(messageData){
-		console.log(messageData.action);
 		socket.broadcast.to(socket.room).emit("message", messageData);
 	});
 
@@ -244,6 +244,32 @@ status: "fail"
 		} catch(e){
 			console.log(e);
 		}
-	})
+	});
+
+	//	when a datachannel of a user is set up ready
+	socket.on("dataChannelStatus", function(dataChannelStatusData){
+		socket.emit("dataChannelStatus", dataChannelStatusData);
+	});
+
+	//	when user and peer finish transfering their time stamp
+	socket.on("timeStamp", function(timeStampData){
+		socket.emit("timeStamp", timeStampData);
+	});
+
+	socket.on("newUser", function(newUserData){	
+		var self = this;
+		var roomId = user[socket.userName].room;
+		console.log(roomId);
+		var host = room[roomId].host;
+		console.log(host);
+		admin.emit("newUser", {
+			type: "newUser",
+			user: newUserData.user,
+			room: roomId,
+			host:	host,
+			latency: newUserData.latency
+		});
+		
+	});
 
 })
