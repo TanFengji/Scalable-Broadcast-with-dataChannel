@@ -9,27 +9,25 @@ function PeerConnection(local, peer, socket, localVideo, config){
 	this.localVideo = localVideo;
 	this.configuration = config;
 	console.log("local video is " + localVideo);
+	console.log(peer);
 }
 
 //Visitor setup the p2p connection with a peer
 PeerConnection.prototype.visitorSetupPeerConnection = function(peer,/* streamCallback,*/ cb) {
 	var self = this;
 	// Setup stream listening
-	console.log("listen to stream");
-	this.p2pConnection.onaddstream = function (e) {
+	/*	this.p2pConnection.onaddstream = function (e) {
 		self.localVideo.src = window.URL.createObjectURL(e.stream);
 		streamCallback(e.stream);
 		console.log("received a stream");
 		console.log(e.stream);
-	};
+	};*/
 
 
 
 //	Setup ice handling
-	console.log("start ice handling");
 	this.p2pConnection.onicecandidate = function (event) {
 		if (event.candidate) {
-			console.log(event.candidate);
 			self.socket.emit("candidate", {
 				type: "candidate",
 				local: self.user,
@@ -50,8 +48,6 @@ PeerConnection.prototype.hostSetupPeerConnection = function(peer, stream, cb) {
 	// Setup ice handling
 	this.p2pConnection.onicecandidate = function (event) {
 		if (event.candidate) {
-			console.log("send an ice candidate");
-			console.log(event.candidate);
 			self.socket.emit("candidate", {
 				type: "candidate",
 				local: self.user,
@@ -68,7 +64,6 @@ PeerConnection.prototype.addVideo = function(stream) {
 	var self = this;
 	this.p2pConnection.addStream(stream);
 	this.makeOffer( function(sdpOffer){
-		console.log(sdpOffer);
 		sdpOffer = JSON.stringify(sdpOffer);
 		self.dataChannel.send(sdpOffer);
 	});
@@ -79,8 +74,6 @@ PeerConnection.prototype.onAddVideo = function(sdpOffer) {
 	var self = this;
 	this.p2pConnection.onaddstream = function (e) {
 		self.localVideo.src = window.URL.createObjectURL(e.stream);
-		console.log("received a stream");
-		console.log(e.stream);
 	};
 	this.receiveOffer(sdpOffer, function(sdpAnswer){
 		sdpAnswer = JSON.stringify(sdpAnswer);
@@ -104,24 +97,47 @@ PeerConnection.prototype.openDataChannel = function(cb){
 	};
 
 	self.dataChannel = this.p2pConnection.createDataChannel("label", dataChannelOptions);
-	console.log("new Data channel");
 
 	self.dataChannel.onerror = function (error) {
 		console.log("Data Channel Error:", error);
 	};
 
 	self.dataChannel.onmessage = function (msg) {
-		console.log("Got Data Channel Message:");
-
 		if (isJson(msg.data)){
 			message = JSON.parse(msg.data);
-			console.log(message);
+
 			if (message.type === "offer"){
 				self.onAddVideo(message);
-			}
-			else if (message.type === "answer"){
+				
+			}else if (message.type === "answer"){
 				self.receiveAnswer(message);
+				
+			}else if (message.type === "timeStamp"){
+				var respondTime = Date.now();
+				var timeStampResponse = {
+						type: "timeStampResponse",
+						sendTime: message.sendTime,
+						respondTime: respondTime
+				}
+				timeStampResponse = JSON.stringify(timeStampResponse);
+				self.dataChannel.send(timeStampResponse);
+				
+			}else if (message.type === "timeStampResponse"){
+				receiveTime = Date.now();
+				console.log("sendTime is " + message.sendTime);
+				console.log("respondTime is " + message.respondTime);
+				console.log("receiveTime is " + receiveTime);
+				
+				self.socket.emit("timeStamp", {
+					type: "timeStamp",
+					user: self.user,
+					peer: self.remote,
+					sendTime: message.sendTime,
+					respondTime: message.respondTime,
+					receiveTime: receiveTime
+				});
 			}
+				
 		} else {
 			message = msg.data + "<br />"
 			document.getElementById("info").innerHTML += message;
@@ -130,6 +146,10 @@ PeerConnection.prototype.openDataChannel = function(cb){
 
 	self.dataChannel.onopen = function () {
 		self.dataChannel.send("connected.");
+		self.socket.emit("dataChannelStatus", {
+			type: "dataChannelStatus",
+			status: "success"
+		});
 	};
 
 	self.dataChannel.onclose = function () {
@@ -143,7 +163,7 @@ PeerConnection.prototype.openDataChannel = function(cb){
 PeerConnection.prototype.makeOffer = function(cb)	{
 	var self = this;
 	this.p2pConnection.createOffer(function (sdpOffer) {
-		sdpOffer.sdp = sdpOffer.sdp.replace(/a=sendrecv/g,"a=sendonly");
+		//sdpOffer.sdp = sdpOffer.sdp.replace(/a=sendrecv/g,"a=sendonly");
 		self.p2pConnection.setLocalDescription(sdpOffer);
 		cb(sdpOffer);
 	}, function(error){
@@ -157,7 +177,7 @@ PeerConnection.prototype.receiveOffer = function(sdpOffer, cb){
 	sdpOffer = new RTCSessionDescription(sdpOffer);
 	this.p2pConnection.setRemoteDescription(sdpOffer, function(){
 		self.p2pConnection.createAnswer(function (answer) {
-			answer.sdp = answer.sdp.replace(/a=sendrecv/g,"a=recvonly");
+			//answer.sdp = answer.sdp.replace(/a=sendrecv/g,"a=recvonly");
 			self.p2pConnection.setLocalDescription(answer);
 			console.log(self.p2pConnection.localDescription);
 			console.log(self.p2pConnection.remoteDescription);

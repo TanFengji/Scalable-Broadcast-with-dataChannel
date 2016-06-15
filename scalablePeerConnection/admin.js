@@ -12,7 +12,8 @@ signalSocket.on("host", function(userData){
 });
 
 signalSocket.on("newUser", function(userData){
-	taskSocket.emit("newUser", userData);
+	console.log(userData);
+	//taskSocket.emit("newUser", userData);
 });
 
 signalSocket.on("disconnectedUser", function(userData){
