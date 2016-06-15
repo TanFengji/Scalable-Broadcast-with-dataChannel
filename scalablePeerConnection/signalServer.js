@@ -25,7 +25,9 @@ var opts = {
 };
 
 request.get(opts, function(error, response, body){
-	configuration = body.d;
+	//configuration = body.d;
+	configuration = {"iceServers": [{ "url": "stun:stun.1.google.com:19302"
+	}]}
 	console.log(configuration);
 });
 
