@@ -90,7 +90,7 @@ PeerConnection.prototype.onAddVideo = function(sdpOffer) {
 
 //initialise p2pconnection at the start of a peer connection 
 PeerConnection.prototype.startConnection = function(cb){
-	this.p2pConnection = new RTCPeerConnection(this.configuration);
+	this.p2pConnection = new webkitRTCPeerConnection(this.configuration);
 	cb();
 }
 
@@ -112,7 +112,6 @@ PeerConnection.prototype.openDataChannel = function(cb){
 
 	self.dataChannel.onmessage = function (msg) {
 		console.log("Got Data Channel Message:");
-		console.log(msg.data);
 
 		if (isJson(msg.data)){
 			message = JSON.parse(msg.data);
@@ -155,6 +154,7 @@ PeerConnection.prototype.makeOffer = function(cb)	{
 //receive an sdp offer and create an sdp answer
 PeerConnection.prototype.receiveOffer = function(sdpOffer, cb){
 	var self = this;
+	sdpOffer = new RTCSessionDescription(sdpOffer);
 	this.p2pConnection.setRemoteDescription(sdpOffer, function(){
 		self.p2pConnection.createAnswer(function (answer) {
 			answer.sdp = answer.sdp.replace(/a=sendrecv/g,"a=recvonly");
@@ -170,6 +170,7 @@ PeerConnection.prototype.receiveOffer = function(sdpOffer, cb){
 
 //receive an spd answer
 PeerConnection.prototype.receiveAnswer = function(sdpAnswer){
+	sdpAnswer = new RTCSessionDescription(sdpAnswer);
 	this.p2pConnection.setRemoteDescription(sdpAnswer,function(){}, function(){});
 	console.log(this.p2pConnection.localDescription);
 	console.log(this.p2pConnection.remoteDescription);
@@ -177,7 +178,7 @@ PeerConnection.prototype.receiveAnswer = function(sdpAnswer){
 
 //add ice candidate when receive one
 PeerConnection.prototype.addCandidate = function(iceCandidate) {
-	this.p2pConnection.addIceCandidate(new RTCIceCandidate(iceCandidate.candidate));
+	this.p2pConnection.addIceCandidate(new RTCIceCandidate(iceCandidate.candidate), function(){}, function(){});
 }
 
 function isJson(str) {
