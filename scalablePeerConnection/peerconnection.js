@@ -3,6 +3,7 @@ function PeerConnection(local, peer, socket, localVideo, config){
 	var p2pConnection;
 	var indicator;
 	var dataChannel;
+	var stream;
 	this.user = local;
 	this.remote = peer;
 	this.socket = socket;
@@ -64,6 +65,7 @@ PeerConnection.prototype.addVideo = function(stream) {
 	var self = this;
 	this.p2pConnection.addStream(stream);
 	this.makeOffer( function(sdpOffer){
+		sdpOffer.sdp = sdpOffer.sdp.replace(/a=sendrecv/g,"a=sendonly");
 		sdpOffer = JSON.stringify(sdpOffer);
 		self.dataChannel.send(sdpOffer);
 	});
@@ -74,9 +76,11 @@ PeerConnection.prototype.onAddVideo = function(sdpOffer) {
 	var self = this;
 	this.p2pConnection.onaddstream = function (e) {
 		self.localVideo.src = window.URL.createObjectURL(e.stream);
+		self.setLocalStream(e.stream);
 	};
 	this.receiveOffer(sdpOffer, function(sdpAnswer){
 		sdpAnswer = JSON.stringify(sdpAnswer);
+		sdpOffer.sdp = sdpOffer.sdp.replace(/a=sendrecv/g,"a=recvonly");
 		self.dataChannel.send(sdpAnswer);
 	});
 }
@@ -198,7 +202,19 @@ PeerConnection.prototype.receiveAnswer = function(sdpAnswer){
 
 //add ice candidate when receive one
 PeerConnection.prototype.addCandidate = function(iceCandidate) {
-	this.p2pConnection.addIceCandidate(new RTCIceCandidate(iceCandidate.candidate), function(){}, function(){});
+	this.p2pConnection.addIceCandidate(new RTCIceCandidate(iceCandidate.candidate), function(){}, function(){
+		console.log("fail");
+	});
+}
+
+PeerConnection.prototype.setLocalStream = function(stream){
+	var self = this;
+	this.stream = stream;
+	this.socket.emit("streamStatus", {
+		type: "streamStatus",
+		host: self.remote,
+		status: "success"
+	});
 }
 
 function isJson(str) {

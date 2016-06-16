@@ -6,9 +6,9 @@ function AllConnection(){
 	var stream;
 	var socket;
 	var configuration;
+	var localVideo;
 	this.connection = {};
 	this.indicator = new Indicator();
-	var localVideo;
 }
 
 //initialise the setup of AllConnection
@@ -89,7 +89,6 @@ AllConnection.prototype.onOffer = function(sdpOffer, cb){
 			});
 		});
 	});
-
 }
 
 //when receive an spd answer
@@ -109,6 +108,10 @@ AllConnection.prototype.deleteConnection = function(peer){
 //set the ICE server 
 AllConnection.prototype.setIceServer = function(iceServers){
 	this.iceServers = iceServers;
+}
+
+AllConnection.prototype.setLocalStream = function(streamStatus){
+	
 }
 
 module.exports = AllConnection;

@@ -10,7 +10,7 @@ var adminSocket;
 
 var cpuStatus = MESSAGE_CPU_FREE;
 
-console.log("taskProcessor start to work");
+console.log("router start to work");
 /* Tasks are stored in a queue and automatically being processed 
  * if cpuStatus is "FREE" or there are tasks remained in the task
  * list after processed a task*/
