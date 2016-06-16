@@ -114,7 +114,7 @@ AllConnection.prototype.setIceServer = function(iceServers){
 }
 
 AllConnection.prototype.setLocalStream = function(streamStatus){
-	
+	this.stream = this.connection[streamStatus.host].stream;
 }
 
 module.exports = AllConnection;
