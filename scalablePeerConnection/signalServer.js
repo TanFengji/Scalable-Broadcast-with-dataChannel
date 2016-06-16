@@ -79,7 +79,8 @@ status: "fail"
 			user[socket.userName].join(roomId); 
 			admin.emit("host", {
 				type: "host",
-				host: socket.userName
+				user: socket.userName,
+				room: roomId
 			});
 
 			socket.emit("createRoom", {
@@ -196,7 +197,8 @@ status: "fail"
 		if (socket.userName){
 			admin.emit("disconnectedUser", {
 				type: "disconnectedUser",
-				userName: socket.userName,
+				user: socket.userName,
+				room: socket.room,
 				host:	room[socket.room].host
 			});
 			socket.broadcast.to(socket.room).emit("message", {
@@ -212,7 +214,7 @@ status: "fail"
 //	a new peer connection is asked to be built
 	socket.on("newPeerConnection", function(userData){
 		try {
-			user[userData.host].emit("initConnection", userData.userName);
+			user[userData.host].emit("newPeerConnection", userData.user);
 			//	console.log("User " + command[1] + " initialise connection to user " + command[2]);
 		} catch(e){
 			console.log(e);
@@ -268,8 +270,14 @@ status: "fail"
 			room: roomId,
 			host:	host,
 			latency: newUserData.latency
-		});
-		
+		});	
 	});
-
+	
+	socket.on("host", function(hostData){
+		user[hostData.user].emit("initCamera"); 
+	});
+	
+	socket.on("streamStatus", function(streamStatus){
+		socket.emit("streamStatus", streamStatus); 
+	});
 })

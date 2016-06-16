@@ -96,3 +96,11 @@
 [0615/171418:ERROR:file_io.cc(30)] read: expected 36, observed 0
 [0615/173305:ERROR:file_io.cc(30)] read: expected 36, observed 0
 [0615/181426:ERROR:file_io.cc(30)] read: expected 36, observed 0
+[0616/133605:ERROR:file_io.cc(30)] read: expected 36, observed 0
+[0616/133809:ERROR:file_io.cc(30)] read: expected 36, observed 0
+[0616/134013:ERROR:file_io.cc(30)] read: expected 36, observed 0
+[0616/135953:ERROR:file_io.cc(30)] read: expected 36, observed 0
+[0616/140132:ERROR:file_io.cc(30)] read: expected 36, observed 0
+[0616/142310:ERROR:file_io.cc(30)] read: expected 36, observed 0
+[0616/142310:ERROR:file_io.cc(30)] read: expected 36, observed 0
+[0616/142441:ERROR:file_io.cc(30)] read: expected 36, observed 0
