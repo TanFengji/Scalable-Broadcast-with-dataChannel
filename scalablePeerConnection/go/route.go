@@ -4,7 +4,7 @@ import (
     "fmt"
     "encoding/json"
     "net"
-	"bufio"
+    "bufio"
 )
 
 type PeerInfo struct {
@@ -22,18 +22,18 @@ type UserInfo struct {
 
 const (
     CONN_HOST = "localhost"
-    CONN_PORT = "8889"
+    CONN_PORT = "8888"
     CONN_TYPE = "tcp"
 )
 
-var peer PeerInfo
+var userInfo UserInfo
 
 func main() {
     // Listen for incoming connections.
     listener, err := net.Listen(CONN_TYPE, CONN_HOST+":"+CONN_PORT)
     
     if err != nil {
-		fmt.Println("Error listening:", err.Error())
+	fmt.Println("Error listening:", err.Error())
     }
     
     // Close the listener when the application closes.
@@ -42,12 +42,12 @@ func main() {
     for {
 	// Listen for an incoming connection.
 	conn, err := listener.Accept()
-
+	
 	if err != nil {
 	    fmt.Println("Error accepting: ", err.Error())
 	    continue
 	}
-
+	
 	// Handle connections in a new goroutine.
 	go handleRequest(conn)
     }
@@ -56,13 +56,13 @@ func main() {
 // Handles incoming requests.
 func handleRequest(conn net.Conn) {
     defer conn.Close()
-
-	input := bufio.NewScanner(conn)
-
-	for input.Scan() {
-		text := input.Text()
-		byte_text := []byte(text)
-		json.Unmarshal(byte_text, &peer)
-		fmt.Fprintf(conn, "Peer: %s \t Latency: %d \n ", peer.Peer, peer.Latency)
-	}
+    
+    input := bufio.NewScanner(conn)
+    
+    for input.Scan() {
+	text := input.Text()
+	byte_text := []byte(text)
+	json.Unmarshal(byte_text, &userInfo)
+	fmt.Fprintf(conn, "Type: %s  User: %s  Room: %s  Host: %s", userInfo.Type, userInfo.User, userInfo.Room, userInfo.Host)
+    }
 }
