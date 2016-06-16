@@ -17,11 +17,7 @@ signalSocket.on("newUser", function(userData){
 	//taskSocket.emit("newUser", userData);
 	var peerConnection = {};
 	peerConnection.user = userData.user;
-	if (userData.latency[1]){
-		peerConnection.host = "b" ;
-	}else {
-		peerConnection.host = userData.latency[0].peer;
-	}
+	peerConnection.host = userData.latency[0].peer;
 	signalSocket.emit("newPeerConnection", peerConnection);
 });
 

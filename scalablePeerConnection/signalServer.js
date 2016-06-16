@@ -214,6 +214,7 @@ status: "fail"
 //	a new peer connection is asked to be built
 	socket.on("newPeerConnection", function(userData){
 		try {
+			console.log(userData);
 			user[userData.host].emit("newPeerConnection", userData.user);
 			//	console.log("User " + command[1] + " initialise connection to user " + command[2]);
 		} catch(e){
@@ -261,9 +262,7 @@ status: "fail"
 	socket.on("newUser", function(newUserData){	
 		var self = this;
 		var roomId = user[socket.userName].room;
-		console.log(roomId);
 		var host = room[roomId].host;
-		console.log(host);
 		admin.emit("newUser", {
 			type: "newUser",
 			user: newUserData.user,
