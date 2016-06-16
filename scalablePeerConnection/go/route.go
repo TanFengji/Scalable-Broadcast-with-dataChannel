@@ -118,9 +118,30 @@ func handleTasks(conn net.Conn, queue <-chan UserInfo) {
 }
 
 func newUserHandler(userInfo UserInfo) {
-    roomId := UserInfo.Room
+    roomId := userInfo.Room
     if room, exist := rooms[roomId]; exist {
 	user := User{Name: UserInfo.User, Role: "user"}
 	room.addUser(user)
+    }
+}
+
+func newHostHandler(userInfo UserInfo) {
+    roomId := userInfo.Room
+    if room, exist := rooms[roomId]; !exist {
+	user := User{Name: UserInfo.User, Role: "host"}
+	users := make([]User)
+	users = append(users, user)
+	room := Room{ID: roomID, Users: users]
+	rooms[roomId] = room;
+    }
+}
+
+func disconnectHandler(userInfo UserInfo) {
+    roomId := UserInfo.Room
+    if room, exist := rooms[roomId]; exist {
+	room.removeUser(userInfo.User)
+	if len(room.getUsers())==0 {
+	    delete(rooms, roomId)
+	}
     }
 }
