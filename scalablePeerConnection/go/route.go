@@ -40,7 +40,7 @@ func (room *Room) getUsers() []User {
 
 func (room *Room) removeUser(user User) {
     room.Users = room.Users
-    for i, u range room.Users {
+    for i, u := range room.Users {
 	if u.Name == user.Name {
 	    room.Users = append(room.Users[:i], room.Users[i+1:]...) // The ... is essential
 	    return
@@ -54,13 +54,13 @@ const (
     CONN_TYPE = "tcp"
 )
 
-var rooms map(string)Room
+var rooms map[string]Room
 
 func main() {
     // Listen for incoming connections.
     listener, err := net.Listen(CONN_TYPE, CONN_HOST+":"+CONN_PORT)
     queue := make(chan UserInfo, 10) // Buffered channel with capacity of 10
-    rooms = make(map(string)Room)
+    rooms = make(map[string]Room)
     
     if err != nil {
 	fmt.Println("Error listening:", err.Error())
@@ -120,7 +120,7 @@ func handleTasks(conn net.Conn, queue <-chan UserInfo) {
 func newUserHandler(userInfo UserInfo) {
     roomId := userInfo.Room
     if room, exist := rooms[roomId]; exist {
-	user := User{Name: UserInfo.User, Role: "user"}
+	user := User{Name: userInfo.User, Role: "user"}
 	room.addUser(user)
     }
 }
@@ -128,16 +128,16 @@ func newUserHandler(userInfo UserInfo) {
 func newHostHandler(userInfo UserInfo) {
     roomId := userInfo.Room
     if room, exist := rooms[roomId]; !exist {
-	user := User{Name: UserInfo.User, Role: "host"}
-	users := make([]User)
+	user := User{Name: userInfo.User, Role: "host"}
+	users := make([]User, 0)
 	users = append(users, user)
-	room := Room{ID: roomID, Users: users]
+	room := Room{ID: roomId, Users: users}
 	rooms[roomId] = room;
     }
 }
 
 func disconnectHandler(userInfo UserInfo) {
-    roomId := UserInfo.Room
+    roomId := userInfo.Room
     if room, exist := rooms[roomId]; exist {
 	room.removeUser(userInfo.User)
 	if len(room.getUsers())==0 {
