@@ -28,6 +28,8 @@ go.on('data', function(data) {
       signalSocket.emit("newPeerConnection", res); break;
     case "deletePeerConnection":
       signalSocket.emit("deletePeerConnection", res); break;
+    case "host":
+      signalSocket.emit("host", res); break;
   }
   
 });
