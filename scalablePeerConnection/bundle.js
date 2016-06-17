@@ -7622,8 +7622,8 @@ var io = require('socket.io-client');
 function WebRTC(server){
 	var self = this;
 	var user;
-	var peer;
 	var peerList;
+	this.initPeerNo = 0;
 	this.latencyList = [];
 	this.peerNo = 0;
 	this.connectionBuilt = 0;
@@ -7636,22 +7636,23 @@ function WebRTC(server){
 	self.socket.on("dataChannelStatus", function(dataChannelStatusData){
 		if (dataChannelStatusData.status === "success"){
 			self.connectionBuilt++;
-			if (self.connectionBuilt === self.peerNo){
+			if (self.connectionBuilt === self.initPeerNo){
+				self.initPeerNo = 0;
 				self.sendTimeStamp();
+				setInterval(function(){
+					self.sendTimeStamp();
+				}, 10000);
 			}
 		}
 	});
 
-	// when user and a peer finish transfering their time stamp
+//	when user and a peer finish transfering their time stamp
 	self.socket.on("timeStamp", function(timeStampData){
 		var timeStamp = {};
 		timeStamp.peer = timeStampData.peer;
 		timeStamp.latency = timeStampData.receiveTime - timeStampData.sendTime;
 		self.latencyList.push(timeStamp);
 
-		/* self.latencyList[timeStampData.peer] = {};
-		 * self.latencyList[timeStampData.peer].peer = timeStampData.peer; 
-		 *	self.latencyList[timeStampData.peer].latency = timeStampData.receiveTime - timeStampData.sendTime;*/
 		self.latencyListSize++ ; 
 		if (self.latencyListSize === self.peerNo){
 			for (var a in self.latencyList){
@@ -7665,35 +7666,36 @@ function WebRTC(server){
 				user: self.user,
 				latency: self.latencyList
 			});
+			self.clearTimeStamp();
 		}
 
 
 	});
 
-	//responde to different socket received from server
+//	responde to different socket received from server
 
 	self.socket.on("feedback", function(feedback) {
 		document.getElementById("feedback").value = feedback;
 	});
 
-	//receive a sdp offer
+//	receive a sdp offer
 	self.socket.on("SDPOffer", function(sdpOffer) {
 		self.allConnection.onOffer(sdpOffer, function(){
 		});
 	});
 
-	//receive a sdp answer
+//	receive a sdp answer
 	self.socket.on("SDPAnswer", function(sdpAnswer) {
 		self.allConnection.onAnswer(sdpAnswer);
 	});
 
-	//receive an ice candidate
+//	receive an ice candidate
 	self.socket.on("candidate", function(iceCandidate) {
 		console.log("receive an ice candidate");
 		self.allConnection.onCandidate(iceCandidate);
 	});
 
-	// when a user in the room disconnnected
+//	when a user in the room disconnnected
 	self.socket.on("disconnectedUser", function(disConnectedUserName) {
 		console.log("user " + disConnectedUserName + " is disconnected");
 		self.onUserDisconnect(disConnectedUserName);
@@ -7705,7 +7707,7 @@ function WebRTC(server){
 		});
 	});
 
-	// initialize 1 way peer connection or start host's camera
+//	initialize 1 way peer connection or start host's camera
 	self.socket.on("initConnection", function(peer){
 		self.allConnection.initConnection(peer);
 	});
@@ -7713,13 +7715,10 @@ function WebRTC(server){
 	self.socket.on("initCamera", function(){
 		console.log("init camera");
 		self.allConnection.initCamera(function(){
-			/* setup camera before build connection	
-			 * self.onHostSetup();
-			 */
 		});
 	})
 
-	// delete peer connection when peer left
+//	delete peer connection when peer left
 	self.socket.on("deleteConnection", function(peer){
 		self.allConnection.deleteConnection(peer);
 		self.peer = null;
@@ -7729,16 +7728,15 @@ function WebRTC(server){
 		console.log("received message");
 		self.onMessage(messageData);
 	});
-	
+
 	self.socket.on("newPeerConnection", function(peer){
-		console.log(peer);
 		self.addVideo(peer);
 	});
-	
+
 	self.socket.on("streamStatus", function(streamStatus){
 		self.allConnection.setLocalStream(streamStatus);
 	});
-	
+
 }
 
 
@@ -7783,12 +7781,9 @@ WebRTC.prototype.joinRoom = function(roomId, successCallback, failCallback) {
 			});
 
 			for (var peer in self.peerList){
-				if (peer){
-					self.peerNo++;
-				}
+				self.initPeerNo++;
 			}
 
-			console.log(self.peerNo);
 			for (var peer in self.peerList){
 				self.allConnection.initConnection(peer);
 			}
@@ -7803,19 +7798,9 @@ WebRTC.prototype.joinRoom = function(roomId, successCallback, failCallback) {
 WebRTC.prototype.onUserDisconnect = function(userDisconnected){
 }
 
-/*WebRTC.prototype.sendChatMessage = function(chatMessage){
-	var self = this;
-	self.socket.emit("message", {
-		type: "message",
-		action: "chat",
-		user: self.user,
-		content: chatMessage
-	})
-}*/
-
 WebRTC.prototype.sendChatMessage = function(chatMessage){
 	var self = this;
-	for (var peer in self.peerList){
+	for (var peer in self.allConnection.connection){
 		self.allConnection.connection[peer].dataChannel.send(chatMessage);
 	}
 }
@@ -7837,21 +7822,26 @@ WebRTC.prototype.setIceServer = function(iceServers){
 }
 
 WebRTC.prototype.sendTimeStamp = function(){
-	for (var peer in this.peerList){
+	var self = this;
+
+	for (var peer in self.allConnection.connection){
+		self.peerNo++;
 		var time = Date.now();
 		var timeStamp = {
 				type: "timeStamp",
 				sendTime: time
 		}
 		timeStamp = JSON.stringify(timeStamp);
-		this.allConnection.connection[peer].dataChannel.send(timeStamp);
+		self.allConnection.connection[peer].dataChannel.send(timeStamp);
 	}
 }
 
-/*
-WebRTC.prototype.onHostSetup = function(){
+WebRTC.prototype.clearTimeStamp = function(){
+	this.latencyList = [];
+	this.peerNo = 0;
+	this.connectionBuilt = 0;
+	this.latencyListSize = 0;
 }
- */
 
 module.exports = WebRTC;
 
