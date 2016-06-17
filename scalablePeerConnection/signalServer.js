@@ -273,7 +273,7 @@ status: "fail"
 	});
 	
 	socket.on("host", function(hostData){
-		user[hostData.user].emit("initCamera"); 
+		user[hostData.host].emit("initCamera"); 
 	});
 	
 	socket.on("streamStatus", function(streamStatus){

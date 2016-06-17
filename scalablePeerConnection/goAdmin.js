@@ -5,12 +5,13 @@ var signalSocket = io.connect("http://localhost:8080");
 
 var HOST = 'localhost';
 var PORT = 8888;
-
 var go = new net.Socket();
+
 go.connect(PORT, HOST, function() {
   console.log('Connected to Go server: ' + HOST + ':' + PORT);
   
   // Send signal to signalServer.js that admin starts to work
+  
   signalSocket.emit("admin");
   console.log('admin.js starts to work');
   
@@ -22,7 +23,6 @@ go.on('data', function(data) {
   console.log('Go: ' + data.toString());
   var jsonStr = data.toString();
   var res = JSON.parse(jsonStr);
-  console.log(res);
   switch (res.type) {
     case "newPeerConnection": 
       signalSocket.emit("newPeerConnection", res); break;

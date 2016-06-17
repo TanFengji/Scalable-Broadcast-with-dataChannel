@@ -30,6 +30,7 @@ type Instruction struct {
     Type string `json:"type"` //enum: "newPeerConnection" "deletePeerConnection"
     Parent string `json:"parent"`
     Child string `json:"child"` 
+    Host string `json:"host"`
 }
 
 type Room struct {
@@ -164,7 +165,6 @@ func newUserHandler(userInfo UserInfo, ins chan<- Instruction) {
 func newHostHandler(userInfo UserInfo, ins chan<- Instruction) {
     fmt.Println("newHostHandler triggered")
     roomId := userInfo.Room
-    //mu.Lock()
     if _, exist := rooms[roomId]; !exist {
 	user := User{Name: userInfo.User, Role: "host"}
 	users := make([]User, 0)
@@ -172,8 +172,8 @@ func newHostHandler(userInfo UserInfo, ins chan<- Instruction) {
 	room := Room{ID: roomId, Users: users}
 	rooms[roomId] = room;
 	fmt.Println(room.getUsers())
+	ins <- Instruction{Type:"host", Host: user.Name}
     }
-    //mu.Unlock()
 }
 
 func disconnectHandler(userInfo UserInfo, ins chan<- Instruction) {
