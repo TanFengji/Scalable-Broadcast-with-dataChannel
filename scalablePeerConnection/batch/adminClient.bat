@@ -1,2 +1,2 @@
 cd..
-node admin.js
+node goAdmin.js

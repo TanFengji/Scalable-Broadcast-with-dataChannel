@@ -87,7 +87,7 @@ PeerConnection.prototype.onAddVideo = function(sdpOffer) {
 
 //initialise p2pconnection at the start of a peer connection 
 PeerConnection.prototype.startConnection = function(cb){
-	this.p2pConnection = new webkitRTCPeerConnection(this.configuration);
+	this.p2pConnection = new RTCPeerConnection(this.configuration);
 	cb();
 }
 

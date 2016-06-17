@@ -1,2 +1,3 @@
 cd..
-node router.js
+cd go
+route.exe
