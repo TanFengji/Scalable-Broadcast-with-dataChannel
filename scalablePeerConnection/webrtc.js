@@ -113,6 +113,7 @@ function WebRTC(server){
 	});
 	
 	self.socket.on("newPeerConnection", function(peer){
+		console.log(peer);
 		self.addVideo(peer);
 	});
 	

@@ -215,7 +215,7 @@ status: "fail"
 	socket.on("newPeerConnection", function(userData){
 		try {
 			console.log(userData);
-			user[userData.host].emit("newPeerConnection", userData.user);
+			user[userData.parent].emit("newPeerConnection", userData.child);
 			//	console.log("User " + command[1] + " initialise connection to user " + command[2]);
 		} catch(e){
 			console.log(e);
@@ -227,7 +227,7 @@ status: "fail"
 	socket.on("deletePeerConnection", function(userData){
 		try {
 
-			user[userData.userName].emit("deleteConnection", userData.userName);
+			user[userData.parent].emit("deleteConnection", userData.child);
 			//	console.log("User " + command[1] + " initialise connection to user " + command[2]);
 		} catch(e){
 			console.log(e);
