@@ -71,17 +71,16 @@ const (
     CONN_TYPE = "tcp"
 )
 
-var rooms map[string]Room
-
-var mu sync.Mutex
-
+var rooms map(string)chan UserInfo
+var openRoom chan (chan UserInfo)
+var closeRoom chan (chan UserInfo)
 
 func main() {
     // Listen for incoming connections.
     listener, err := net.Listen(CONN_TYPE, CONN_HOST+":"+CONN_PORT)
     queue := make(chan UserInfo, 10) // Buffered channel with capacity of 10
     ins := make(chan Instruction, 10)
-    rooms = make(map[string]Room)
+    //rooms = make(map[string]Room)
     
     if err != nil {
 	fmt.Println("Error listening:", err.Error())
@@ -101,12 +100,13 @@ func main() {
 	
 	// Handle connections in a new goroutine.
 	go handleRequests(conn, queue)
-	go handleTasks(queue, ins) // Potentially need to increase the number of workers
+	go handleTasks(queue) // Potentially need to increase the number of workers
+	go handleRooms(openRoom, closeRoom, ins)
 	go handleInstructions(conn, ins)
     }
 }
 
-// Handles incoming requests.
+// Handles incoming requests and parse response from json to UserInfo struct
 func handleRequests(conn net.Conn, queue chan<- UserInfo) {
     fmt.Println("handleRequests is working")
     defer conn.Close()
@@ -125,47 +125,119 @@ func handleRequests(conn net.Conn, queue chan<- UserInfo) {
     }
 }
 
-func handleTasks(queue <-chan UserInfo, ins chan<- Instruction) {
-    fmt.Println("handleTasks is working")
+
+func handleRooms() {
     for {
-	var userInfo UserInfo
-	userInfo = <- queue
+	select {
+	case room := <- openRoom:
+	    go manageRoom(room)
+	case room := <- closeRoom:
+	    room <- UserInfo{Type:"close"}
+	    delete(rooms, room)
+	}
+    }
+}
+
+func manageRoom(room <-chan UserInfo) {
+    defer close(room)
+    
+    var graph = new(Graph) // TODO: implement Graph
+    var tree = new(Graph)
+    
+  loop: //Labeled for loop
+    for {
+	userInfo := <- room
 	
 	switch userInfo.Type {
-	case "newUser": newUserHandler(userInfo, ins) 
-	case "host": newHostHandler(userInfo, ins)
-	case "disconnectedUser": disconnectHandler(userInfo, ins)
+	case "host": 
+	    username := userInfo.Host
+	    graph.AddNode(username)
+	    graph.SetHead(username)
+	    ins <- Instruction{Type: "host", Host: username} 
+	    
+	    if userInfo.Latency { // may be unnecessary
+		for _, p := range userInfo.Latency {
+		    peername := p.Peer
+		    weight := p.Latency
+		    graph.AddEdge(peername, username, weight)
+		}
+	    }
+	    
+	case "newUser": 
+	    username := userInfo.User
+	    graph.AddNode(username)
+	    for _, p := range userInfo.Latency {
+		peername := p.Peer
+		weight := p.Latency
+		graph.AddEdge(peername, username, weight)
+	    }
+	    
+	case "disconnectedUser": 
+	    username := userInfo.User
+	    graph.deleteNode(username)
+	    
+	}
+	
+	newTree := graph.GetOptimalTree(2) // parameter is the constraint. 2 means a binary tree
+	    
+	_, _, addedEdges, removedEdges := Graph.Diff(tree, newTree)  // addedNodes, removedEdges, addedEdges, removedEdges := Graph.Diff(tree, newTree) 
+	
+	for _, edge := range removedEdges {
+	    ins <- Instruction{Type:"deletePeerConnection", Parent: edge.Parent, Child: edge.Child}
+	}
+	
+	for _, edge := range addedEdges { // assuming addedEdges are sorted in good orders 
+	    ins <- Instruction{Type:"newPeerConnection", Parent: edge.Parent, Child: edge.Child}
+	}
+	
+	tree = newTree
+    }
+}
+
+func handleTasks(queue <-chan UserInfo) {
+    for {
+	userInfo := <- queue
+	
+	switch userInfo.Type {
+	case "newUser": newUserHandler(userInfo, ins); break;
+	case "host": newHostHandler(userInfo, ins); break;
+	case "disconnectedUser": disconnectHandler(userInfo, ins); break;
 	}
 	fmt.Printf("New task received -> Type: %s  User: %s  Room: %s\n", userInfo.Type, userInfo.User, userInfo.Room)
     }
 }
 
 func newUserHandler(userInfo UserInfo, ins chan<- Instruction) {
-    fmt.Println("newUserHandler triggered")
     roomId := userInfo.Room
-    //mu.Lock()
     if room, exist := rooms[roomId]; exist {
-	fmt.Println(room.getHost())
-	user := User{Name: userInfo.User, Role: "user"}
-	room.addUser(user)
-	
+	room <- userInfo
+    } else {
+	fmt.Println("ERR: newUserHandler - room doesn't exist")
+    }
 	/* Send out instructions */
 	/* TODO: may need to separate out this part */
+	/*
 	host := room.getHost()
 	if host.Role == "host" { 
 	    ins <- Instruction{Type:"newPeerConnection", Parent: host.Name, Child: user.Name}
 	} else {
 	    fmt.Println("ERR: Host doesn't exist")
 	}
-	fmt.Println(room.getUsers())
     }
-    //mu.Unlock()
+    */
 }
 
-func newHostHandler(userInfo UserInfo, ins chan<- Instruction) {
-    fmt.Println("newHostHandler triggered")
+func newHostHandler(userInfo UserInfo) {
     roomId := userInfo.Room
     if _, exist := rooms[roomId]; !exist {
+	room := make(chan UserInfo)
+	rooms[roomId] = room
+	openRoom <- room
+	room <- userInfo
+    } else {
+	fmt.Println("ERR: newHostHandler - room already exists")
+    }
+	/*
 	user := User{Name: userInfo.User, Role: "host"}
 	users := make([]User, 0)
 	users = append(users, user)
@@ -173,17 +245,17 @@ func newHostHandler(userInfo UserInfo, ins chan<- Instruction) {
 	rooms[roomId] = room;
 	fmt.Println(room.getUsers())
 	ins <- Instruction{Type:"host", Host: user.Name}
-    }
+	*/
 }
 
 func disconnectHandler(userInfo UserInfo, ins chan<- Instruction) {
-    fmt.Println("disconnectHandler triggered")
     roomId := userInfo.Room
     if room, exist := rooms[roomId]; exist {
-	user := User{Name:userInfo.User, Role:"user"}
-	room.removeUser(user)
+	room <- userInfo
+	//room.removeUser(user)
 	
 	/* Send out instruction */
+	/*
 	host := room.getHost()
 	
 	if host.Role == "host" {
@@ -196,6 +268,10 @@ func disconnectHandler(userInfo UserInfo, ins chan<- Instruction) {
 	    delete(rooms, roomId)
 	}
 	fmt.Println(room.getUsers())
+	*/
+    }
+    else {
+	fmt.Println("ERR: disconnectHandler - disconnecting from a room non-existing")
     }
 }
 
