@@ -132,7 +132,7 @@ func handleRooms() {
 	case room := <- openRoom:
 	    go manageRoom(room)
 	case room := <- closeRoom:
-	    room <- UserInfo{Type:"close"}
+	    room <- UserInfo{Type:"closeRoom"}
 	    delete(rooms, room)
 	}
     }
@@ -144,7 +144,6 @@ func manageRoom(room <-chan UserInfo) {
     var graph = new(Graph) // TODO: implement Graph
     var tree = new(Graph)
     
-  loop: //Labeled for loop
     for {
 	userInfo := <- room
 	
@@ -175,7 +174,12 @@ func manageRoom(room <-chan UserInfo) {
 	case "disconnectedUser": 
 	    username := userInfo.User
 	    graph.deleteNode(username)
-	    
+	    if len(graph.Nodes) == 0 {
+		return
+	    }
+	
+	case "closeRoom":
+	    return
 	}
 	
 	newTree := graph.GetOptimalTree(2) // parameter is the constraint. 2 means a binary tree
