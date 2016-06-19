@@ -4,7 +4,8 @@ import (
     "fmt"
 )
 
-
+// Graph struct represents a graph that is either undirectional or directional.
+// It may or may not have a head
 type Graph struct {
     edges map[string]map[string]Edge
     nodes map[string]Node
@@ -24,9 +25,12 @@ func (g *Graph) AddNode(s string) {
     n := Node{Value: s}
     if _, exist := g.nodes[s]; !exist {
 	g.nodes[s] = n
-    } //TODO: Add error handling
+    } 
+    //TODO: Add error handling
 }
 
+// GetNode returns a the node with associated string s. The second argument
+// denotes the error and becomes nil if things go correctly`
 func (g *Graph) GetNode(s string) Node, string {
     //NOTE: Make sure the node returned isn't a copy but the actual node
     if n, exist := g.nodes[s]; exist {
@@ -35,13 +39,25 @@ func (g *Graph) GetNode(s string) Node, string {
     return Node{}, "Error getting node"
 }
 
+// RemoveNode removes a node associated with string s from the graph and 
+// also removes the edges both linking in it and linking out of it`
 func (g *Graph) RemoveNode(s string) {
     if n, exist := g.nodes[s]; exist {
 	delete(g.nodes, s)
 	
-	// Also remove edges linked to it
+	//Remove edges linked to it
+	es := n.GetInEdges(s)
+	for _, e := range es {
+	    g.removeEdge(e)
+	}
 	
-    } //TODO: Add error handling
+	//Remove edges linking out of it
+	es := n.GetOutEdge(p)
+	for _, e := range es {
+	    g.removeEdge(e)
+	}
+    } 
+    //TODO: Add error handling
 }
 
 func (g *Graph) GetInEdges(c string) []Edge {
@@ -78,12 +94,14 @@ func (g *Graph) GetEdge(parent, child string) {
 func (g *Graph) SetHead(s string) {
     if n, exist := g.nodes[s]; exist {
 	g.head = n
-    } //TODO: Add error handling
+    }
+    //TODO: Add error handling
 }
 
 func (g *Graph) AddUniEdge(parent, child string, weight int) {
     p := g.GetNode(parent) //NOTE: Make sure it allows changing original value
-    c := g.GetNode(Child) //TODO: Add error handling
+    c := g.GetNode(Child) 
+    //TODO: Add error handling
     ef := Edge{Parent: p, Child: c, Weight: weight}
     p.AddEdge(ef)
     g.edges[parent][child] = ef
@@ -99,4 +117,15 @@ func (g *Graph) AddBiEdge(parent, child string, weight int) {
 func (g *Graph) RemoveUniEdge(parent, child string) {
     e := g.edges[parent][child]
     delete(g.edges[parent], child)
+    
+    //TODO: Use a better encapsulation, now removeEdge (private) is calling
+    //RemoveUniEdge (public)
+}
+
+func (g *Graph) removeEdge(e Edge) {
+    parent := e.Parent
+    child := e.Child
+    g.RemoveUniEdge(parent, child)
+    //TODO: Use a better encapsulation, now removeEdge (private) is calling
+    //RemoveUniEdge (public)
 }
