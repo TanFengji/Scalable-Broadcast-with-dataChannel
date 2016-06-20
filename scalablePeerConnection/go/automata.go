@@ -105,3 +105,12 @@ func (a *Automata) Normalize() {
 	a.probs[i] = a.probs[i] / norm
     }
 }
+
+func (a *Automata) IsStable() {
+    for _, v := range a.probs {
+	if v > a.threshold {
+	    return true
+	}
+    }
+    return false
+}

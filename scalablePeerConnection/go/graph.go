@@ -62,6 +62,12 @@ func (g *Graph) RemoveNode(s string) {
     //TODO: Add error handling
 }
 
+// GetTotalNodes returns the total number of nodes in the graph. Note that
+// it may contain nodes which has no edges connected to it.
+func (g *Graph) GetTotalNodes() int {
+    return len(g.Nodes)
+}
+
 func (g *Graph) GetChildren(s string) []Node {
     // Assuming s node exists
     children := make([]Node, 0)
@@ -175,22 +181,30 @@ func (g *Graph) GetDCMST(deg int) {
     
     // Start from the head -> assuming head exists
     head := g.head.Value
-    
     mst.AddNode(head)
     mst.SetHead(head)
     parent := head
     
-    for {
-	// Loop begins
-	a := autos[parent]
+    var stable bool = false
+    
+    // Keep generating random MST for the graph until every automata becomes stable
+    for !stable {
+	// Entering into a random MST construction process
+	// Use a flag to denote if we have successfully constructed a mst
+	var found bool = false
 	
-	if a.IsActive() {
+	// Loop until a mst has been constructed. Note that we didn't check if 
+	// the parent is active. This means we have assumed that the head starts
+	// to be active. 
+	for !found {
+	    // Getting the automata of parent node
+	    a := autos[parent]
 	    children := g.GetChildren(parent)
 	    
 	    // check if all of its children is inactive, if all of the children
 	    // automata are inactive then hasActive flag is false, otherwise true
 	    var hasActive bool = false
-	    for i, n := range children {
+	    for _, n := range children {
 		if !hasActive {
 		    hasActive = autos[n.Value].IsActive()
 		} else {
@@ -198,7 +212,9 @@ func (g *Graph) GetDCMST(deg int) {
 		}
 	    }
 	    
-	    // If automata has active children, then start to enumerate
+	    // If automata has active children, then start to enumerate, otherwise
+	    // it means that we have either reached a dead end, in which case we
+	    // need to backtrace the constructed tree and 
 	    if hasActive {
 		i := a.Enum()
 		child := children[i].Value
@@ -212,6 +228,8 @@ func (g *Graph) GetDCMST(deg int) {
 		
 		e := g.edges[parent][child]
 		
+		// Reward and penalize based on a threshold value: delta, this 
+		// follows from JA (2013)
 		if e.weight < a.delta {
 		    a.delta = e.weight
 		    a.Reward(i)
@@ -219,25 +237,37 @@ func (g *Graph) GetDCMST(deg int) {
 		    a.Penalize(i)
 		}
 		
+		// Update the total weight and mst graph, and go back to loop
 		wt += e.weight
 		mst.AddNode(child)
 		mst.AddUniEdge(parent, child, e.weight)
 		parent = child
 		
 	    } else { // It means that a node is either at the tail or there is no
-		     // active children
+		// active children
 		if mst.GetTotalNodes() == g.GetTotalNodes() {
 		    // It means that all the nodes are covered and we have found
-		    // a mst
-		    break
+		    // a suitable mst
+		    found = true
 		    
 		} else {
 		    // NOTE: Two assumptions are made
 		    // (1) a tree structure -> every node has one parent
 		    // (2) parent is not head -> at least two nodes in g
-		    parent = g.GetParent(parent)[0].Value 
+		    parent = mst.GetParent(parent)[0].Value 
+		    // TODO: Add error handling
 		}
 	    }
 	}
+	
+	// Check if all automata are stable, if so the loop will terminate, 
+	// otherwise the loop continues
+	stable = true
+	for _, v := range autos {
+	    if !v.IsStable() {
+		stable = false
+	    }
+	}
     }
+    return mst
 }
