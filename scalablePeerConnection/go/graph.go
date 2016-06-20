@@ -282,7 +282,7 @@ func (g *Graph) Compare(t Graph) []Edge, []Edge {
 	    // If an edge that exists in g but doesn't exist in t, it means 
 	    // that this edge is an added edge in g
 	    if _, exist := t.edges[parent][child]; !exist {
-		AddedEdges = append(AddedEdges, e)
+		addedEdges = append(addedEdges, e)
 	    }
 	}
     }
@@ -296,7 +296,7 @@ func (g *Graph) Compare(t Graph) []Edge, []Edge {
 	    // If an edge that exists in t but doesn't exist in g, it eans
 	    // that this edge is a removed edge in g
 	    if _, exist := g.edges[parent][child]; !exist {
-		AddedEdges = append(AddedEdges, e)
+		removedEdges = append(removedEdges, e)
 	    }
 	}
     }
