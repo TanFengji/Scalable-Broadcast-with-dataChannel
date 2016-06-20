@@ -1,11 +1,5 @@
 package main
 
-/* Import not used at the moment
-import (
-    "fmt"
-)
-*/
-
 // Graph struct represents a graph that is either undirectional or directional.
 // It may or may not have a head
 type Graph struct {
@@ -151,6 +145,7 @@ func (g *Graph) RemoveUniEdge(parent, child string) {
     //RemoveUniEdge (public)
 }
 
+// removeEdge is a private method the remove a specific edge struct
 func (g *Graph) removeEdge(e Edge) {
     parent := e.Parent
     child := e.Child
@@ -270,4 +265,40 @@ func (g *Graph) GetDCMST(deg int) {
 	}
     }
     return mst
+}
+
+// Compare function compares to graphs and return the differences. Added nodes
+// and added edges are with respect to the target graph in the parameter. 
+func (g *Graph) Compare(t Graph) []Edge, []Edge {
+    addedEdges := make([]Edge, 0)
+    removedEdges := make([]Edge, 0)
+    
+    for key := range g.nodes {
+	edges := g.GetOutEdges(key)
+	for _, e := range edges {
+	    parent := e.Parent
+	    child := e.Child
+	    
+	    // If an edge that exists in g but doesn't exist in t, it means 
+	    // that this edge is an added edge in g
+	    if _, exist := t.edges[parent][child]; !exist {
+		AddedEdges = append(AddedEdges, e)
+	    }
+	}
+    }
+    
+    for key := range t.nodes {
+	edges := t.GetOutEdges(key)
+	for _, e := range edges {
+	    parent := e.Parent
+	    child := e.Child
+	    
+	    // If an edge that exists in t but doesn't exist in g, it eans
+	    // that this edge is a removed edge in g
+	    if _, exist := g.edges[parent][child]; !exist {
+		AddedEdges = append(AddedEdges, e)
+	    }
+	}
+    }
+    return addedEdges, removedEdges
 }

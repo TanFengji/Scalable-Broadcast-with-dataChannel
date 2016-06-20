@@ -182,9 +182,9 @@ func manageRoom(room <-chan UserInfo) {
 	    return
 	}
 	
-	newTree := graph.GetDCMST(2) // parameter is the constraint. 2 = traveling salesman, 3 means a hamitonian path problem aka maximum spanning binary tree 
+	newTree := graph.GetDCMST(2) // parameter is the constraint. 1 = traveling salesman, 2 means a hamitonian path problem aka maximum spanning binary tree 
 	    
-	_, _, addedEdges, removedEdges := Graph.Diff(tree, newTree)  // addedNodes, removedEdges, addedEdges, removedEdges := Graph.Diff(tree, newTree) 
+	addedEdges, removedEdges := newTree.Compare(tree)  // addedEdges, removedEdges := graph.Compare(tree, newTree) 
 	
 	for _, edge := range removedEdges {
 	    ins <- Instruction{Type:"deletePeerConnection", Parent: edge.Parent, Child: edge.Child}
