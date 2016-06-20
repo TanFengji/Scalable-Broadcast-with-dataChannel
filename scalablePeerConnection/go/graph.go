@@ -157,20 +157,80 @@ func (g *Graph) removeEdge(e Edge) {
 // given graph and return it as a subgraph. The current implementation refers
 // to the learning automata method (JA 2013)
 func (g *Graph) GetDCMST(deg int) {
-    // Starting by making an empty map from node to automata to generate
-    // an isomorphic graph to g
-    automs := make(map[Node]Automata)
+    // Starting by making an empty map from node to automata 
+    var wt float64 = 0
+    var nc int = 0
+    autos := make(map[string]Automata)
     
-    // Starting from the head -> assuming head exists
-    head := g.head
     
-    // Step 1 - get all children of head node
-    children := g.GetChildren(head.Value)
-    noChildren := len(children)
+    // Generate an isomorphic graph to g
+    for k := range g.nodes {
+	nc := len(g.GetChildren(k))
+	autos[k] = NewAutomata(k, deg)
+    }
     
-    automs[head] = NewAutomata(noChildren, deg)
-    // head will associate with noChildren of actions
-    index := automas[head].Enum()
-    children[index]
+    // Start to generate a MST
+    mst := NewGraph()
+    
+    // Start from the head -> assuming head exists
+    head := g.head.Value
+    
+    mst.AddNode(head)
+    mst.SetHead(head)
+    parent := head
+    
+    for {
+	// Loop begins
+	a := autos[parent]
+	
+	if a.IsActive() {
+	    children := g.GetChildren(parent)
+	    
+	    // check if all of its children is inactive, if all of the children
+	    // automata are inactive then hasActive flag is false, otherwise true
+	    var hasActive bool = false
+	    for i, n := range children {
+		if !hasActive {
+		    hasActive = autos[n.Value].IsActive()
+		} else {
+		    break //NOTE: Make sure break doesn't refer to the if statement
+		}
+	    }
+	    
+	    // If automata has active children, then start to enumerate
+	    if hasActive {
+		i := a.Enum()
+		child := children[i].Value
+		
+		// Re-enumerate until an active node is found
+		// May need a more efficient algorithm
+		for !autos[child].IsActive() {
+		    i = a.ReEnum()
+		    child := children[i].Value
+		}
+		
+		e := g.edges[parent][child]
+		
+		if e.weight < a.delta {
+		    a.delta = e.weight
+		    a.Reward(i)
+		} else {
+		    a.Penalize(i)
+		}
+		
+		mst.AddNode(child)
+		mst.AddUniEdge(parent, child, e.weight)
+		
+	    } else { // It means that a node is either at the tail or there is no
+		     // active children
+		if mst.GetTotalNodes() == g.GetTotalNodes() {
+		    // It means that all the nodes are covered and we have found
+		    // a mst
+		} else {
+		    // It means that we have run out of choices but there are more 
+		    // nodes to include
+		}
+	    }
+	}
+    }
 }
-

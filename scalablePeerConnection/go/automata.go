@@ -10,6 +10,7 @@ type Automata struct {
     var active bool
     var sampling sample.Sampling // May not be necessary
     var counter int
+    var delta int
 }
 
 func NewAutomata(actions, limit int) *Automata {
@@ -20,6 +21,7 @@ func NewAutomata(actions, limit int) *Automata {
     a.counter = 0
     a.sampling = sampling.NewSampling()
     a.sampling.AddBundleProbs(a.probs)
+    a.delta = 100000 // A large number 
     return &a
 }
 
@@ -31,6 +33,10 @@ func (a *Automata) Enum int, string {
 	a.active = false
 	return 0, "ERROR - Enum limit is reached"
     }
+}
+
+func (a *Automata) ReEnum int, string {
+    return a.sampling.Sample()
 }
 
 func (a *Automata) IsActive bool {
