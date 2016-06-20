@@ -1,9 +1,10 @@
 package main
 
+/* Import not used at the moment
 import (
     "fmt"
-    "github.com/gonum/floats" // TODO: Use go get to obtain the repository
 )
+*/
 
 // Graph struct represents a graph that is either undirectional or directional.
 // It may or may not have a head
@@ -218,17 +219,23 @@ func (g *Graph) GetDCMST(deg int) {
 		    a.Penalize(i)
 		}
 		
+		wt += e.weight
 		mst.AddNode(child)
 		mst.AddUniEdge(parent, child, e.weight)
+		parent = child
 		
 	    } else { // It means that a node is either at the tail or there is no
 		     // active children
 		if mst.GetTotalNodes() == g.GetTotalNodes() {
 		    // It means that all the nodes are covered and we have found
 		    // a mst
+		    break
+		    
 		} else {
-		    // It means that we have run out of choices but there are more 
-		    // nodes to include
+		    // NOTE: Two assumptions are made
+		    // (1) a tree structure -> every node has one parent
+		    // (2) parent is not head -> at least two nodes in g
+		    parent = g.GetParent(parent)[0].Value 
 		}
 	    }
 	}
