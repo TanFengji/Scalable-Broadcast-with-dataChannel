@@ -2,6 +2,7 @@ package main
 
 import (
     "fmt"
+    "github.com/gonum/floats" // TODO: Use go get to obtain the repository
 )
 
 // Graph struct represents a graph that is either undirectional or directional.
@@ -60,9 +61,30 @@ func (g *Graph) RemoveNode(s string) {
     //TODO: Add error handling
 }
 
+func (g *Graph) GetChildren(s string) []Node {
+    // Assuming s node exists
+    children := make([]Node, 0)
+    if n, exist := g.nodes[s]; exist {
+	val := n.Value
+	for _, e := range n.edges {
+	    children = append(children, e.Child)
+	}
+    }
+    return children
+}
+
+func (g *Graph) GetParent(s string) []Node {
+    parents := make([]Node, 0)
+    edges := g.GetInEdges(s)
+    for _, e := range edges {
+	parents = append(parents, e.Parent)
+    }
+    return parents
+}
+
 func (g *Graph) GetInEdges(c string) []Edge {
     edges := make([]Edge, 0)
-    for _, n := g.nodes {
+    for _, n := range g.nodes {
 	p := n.Value
 	if g.HasUniEdge(p, c) {
 	    e := g.GetUniEdge(p, c) 
@@ -128,4 +150,27 @@ func (g *Graph) removeEdge(e Edge) {
     g.RemoveUniEdge(parent, child)
     //TODO: Use a better encapsulation, now removeEdge (private) is calling
     //RemoveUniEdge (public)
+    
 }
+
+// GetDCMST function finds a Degree-Constrained Maximum Spanning Tree for a 
+// given graph and return it as a subgraph. The current implementation refers
+// to the learning automata method (JA 2013)
+func (g *Graph) GetDCMST(deg int) {
+    // Starting by making an empty map from node to automata to generate
+    // an isomorphic graph to g
+    automs := make(map[Node]Automata)
+    
+    // Starting from the head -> assuming head exists
+    head := g.head
+    
+    // Step 1 - get all children of head node
+    children := g.GetChildren(head.Value)
+    noChildren := len(children)
+    
+    automs[head] = NewAutomata(noChildren, deg)
+    // head will associate with noChildren of actions
+    index := automas[head].Enum()
+    children[index]
+}
+

@@ -2,7 +2,7 @@ package main
 
 import (
     "fmt"
-    "github.com/guanyilun/go-sampling"
+    "github.com/guanyilun/go-sampling/sampling"
 )
 
 func main () {

@@ -182,7 +182,7 @@ func manageRoom(room <-chan UserInfo) {
 	    return
 	}
 	
-	newTree := graph.GetOptimalTree(2) // parameter is the constraint. 2 means a binary tree
+	newTree := graph.GetDCMST(2) // parameter is the constraint. 2 = traveling salesman, 3 means a hamitonian path problem aka maximum spanning binary tree 
 	    
 	_, _, addedEdges, removedEdges := Graph.Diff(tree, newTree)  // addedNodes, removedEdges, addedEdges, removedEdges := Graph.Diff(tree, newTree) 
 	
