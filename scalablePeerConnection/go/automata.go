@@ -1,20 +1,20 @@
-package graph
+package main
 
 import (
-    "github.com/guanyilun/go-sampling/samping"
+    "github.com/guanyilun/go-sampling/sampling"
 )
 
 type Automata struct {
-    var limit int
-    var actions int
-    var probs []float64
-    var active bool
-    var sampling sample.Sampling // May not be necessary
-    var counter int
-    var delta int
-    var reward float64
-    var penalize float64
-    var threshold float64
+    limit int
+    actions int
+    probs []float64
+    active bool
+    sampling *sampling.Sampling // May not be necessary
+    counter int
+    delta int
+    reward float64
+    penalize float64
+    threshold float64
 }
 
 func NewAutomata(actions, limit int) *Automata {
@@ -24,7 +24,7 @@ func NewAutomata(actions, limit int) *Automata {
     
     // Initialize probabilities for automata
     for i := range a.probs {
-	a.probs[i] = 1/actions
+	a.probs[i] = 1/float64(actions)
     }
     a.active = true
     a.counter = 0
@@ -40,17 +40,18 @@ func NewAutomata(actions, limit int) *Automata {
     return &a
 }
 
-func (a *Automata) Enum() int, string {
+func (a *Automata) Enum() int {
     if a.counter < a.limit {
 	a.counter++
-	return a.sampling.Sample(), nil
+	return a.sampling.Sample()
     } else {
 	a.active = false
-	return 0, "ERROR - Enum limit is reached"
+	return 0
     }
+    // TODO: Error handling isn't done properly
 }
 
-func (a *Automata) ReEnum() int, string {
+func (a *Automata) ReEnum() int {
     return a.sampling.Sample()
 }
 
@@ -106,7 +107,7 @@ func (a *Automata) Normalize() {
     }
 }
 
-func (a *Automata) IsStable() {
+func (a *Automata) IsStable() bool {
     for _, v := range a.probs {
 	if v > a.threshold {
 	    return true

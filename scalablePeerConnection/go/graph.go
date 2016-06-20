@@ -8,7 +8,8 @@ type Graph struct {
     head Node
 }
 
-// NewGraph creates an empty new graph
+// @PASSED 
+// NewGraph creates an empty new graph 
 func NewGraph() (*Graph) {
     var g Graph
     g.edges = make(map[string]map[string]Edge)
@@ -16,57 +17,72 @@ func NewGraph() (*Graph) {
     return &g
 }
 
+// @PASSED 
 // AddNode adds a node to a graph and refer to the node with a unique name
 func (g *Graph) AddNode(s string) {
-    n := Node{Value: s}
+    n := NewNode(s) 
     if _, exist := g.nodes[s]; !exist {
-	g.nodes[s] = n
+	g.nodes[s] = *n
     } 
     //TODO: Add error handling
 }
 
+// @PASSED 
 // GetNode returns a the node with associated string s. The second argument
 // denotes the error and becomes nil if things go correctly`
-func (g *Graph) GetNode(s string) Node, string {
+func (g *Graph) GetNode(s string) Node {
     //NOTE: Make sure the node returned isn't a copy but the actual node
+    //TODO: Add error handling <- Temporarily disabled error check
+    /*
     if n, exist := g.nodes[s]; exist {
 	return n, nil
     }
     return Node{}, "Error getting node"
+    */
+    
+    return g.nodes[s]
+}
+
+// @PASSED 
+// SetNode function sets a node by an associated string as a reference
+// Note that error check isn't implemented yet
+func (g *Graph) SetNode(s string, n Node) {
+    g.nodes[s] = n
+    // TODO: Add error handling
 }
 
 // RemoveNode removes a node associated with string s from the graph and 
 // also removes the edges both linking in it and linking out of it`
 func (g *Graph) RemoveNode(s string) {
-    if n, exist := g.nodes[s]; exist {
+    if _, exist := g.nodes[s]; exist {
 	delete(g.nodes, s)
 	
 	//Remove edges linked to it
-	es := n.GetInEdges(s)
-	for _, e := range es {
+	edges := g.GetInEdges(s)
+	for _, e := range edges {
 	    g.removeEdge(e)
 	}
 	
 	//Remove edges linking out of it
-	es := n.GetOutEdge(p)
-	for _, e := range es {
+	edges = g.GetOutEdges(s)
+	for _, e := range edges {
 	    g.removeEdge(e)
 	}
     } 
     //TODO: Add error handling
 }
 
+// @PASSED
 // GetTotalNodes returns the total number of nodes in the graph. Note that
 // it may contain nodes which has no edges connected to it.
 func (g *Graph) GetTotalNodes() int {
-    return len(g.Nodes)
+    return len(g.nodes)
 }
 
 func (g *Graph) GetChildren(s string) []Node {
     // Assuming s node exists
     children := make([]Node, 0)
     if n, exist := g.nodes[s]; exist {
-	val := n.Value
 	for _, e := range n.edges {
 	    children = append(children, e.Child)
 	}
@@ -83,33 +99,41 @@ func (g *Graph) GetParent(s string) []Node {
     return parents
 }
 
+// @PASSED
 func (g *Graph) GetInEdges(c string) []Edge {
     edges := make([]Edge, 0)
+    var e Edge
     for _, n := range g.nodes {
 	p := n.Value
 	if g.HasUniEdge(p, c) {
-	    e := g.GetUniEdge(p, c) 
+	    e = g.GetEdge(p, c) 
 	    edges = append(edges, e) 
 	}
     }
+    return edges
 }
 
+// @PASSED
 func (g *Graph) GetOutEdges(p string) []Edge {
-    return g.nodes[p].edges
+    n := g.nodes[p]
+    return n.GetEdges()
 }
 
+// @PASSED
 func (g *Graph) HasUniEdge(parent, child string) bool {
     _, exist := g.edges[parent][child]
     return exist
 }
 
+// @PASSED
 func (g *Graph) HasBiEdge(parent, child string) bool {
     exist1 := g.HasUniEdge(parent, child)
     exist2 := g.HasUniEdge(child, parent)
     return exist1 && exist2
 }
 
-func (g *Graph) GetEdge(parent, child string) {
+// @PASSED
+func (g *Graph) GetEdge(parent, child string) Edge {
     e := g.edges[parent][child]
     return e
 }
@@ -121,15 +145,19 @@ func (g *Graph) SetHead(s string) {
     //TODO: Add error handling
 }
 
+// @PASSED
 func (g *Graph) AddUniEdge(parent, child string, weight int) {
     p := g.GetNode(parent) //NOTE: Make sure it allows changing original value
-    c := g.GetNode(Child) 
+    c := g.GetNode(child) 
+    e := Edge{Parent: p, Child: c, Weight: weight}
+    p.AddEdge(e)
+    g.SetNode(parent, p) // Remember to set node back to graph
+    g.edges[parent] = make(map[string]Edge)
+    g.edges[parent][child] = e
     //TODO: Add error handling
-    ef := Edge{Parent: p, Child: c, Weight: weight}
-    p.AddEdge(ef)
-    g.edges[parent][child] = ef
 }
 
+// @PASSED
 // AddBiEdge adds a bidirectional edge between parent and child with the 
 // same weight associated with it. 
 func (g *Graph) AddBiEdge(parent, child string, weight int) {
@@ -137,38 +165,41 @@ func (g *Graph) AddBiEdge(parent, child string, weight int) {
     g.AddUniEdge(child, parent, weight)
 }
 
+// @PASSED
 func (g *Graph) RemoveUniEdge(parent, child string) {
+    n := g.GetNode(parent)
     e := g.edges[parent][child]
+    n.RemoveEdge(e)
+    g.SetNode(parent, n)
     delete(g.edges[parent], child)
     
     //TODO: Use a better encapsulation, now removeEdge (private) is calling
     //RemoveUniEdge (public)
 }
 
+// @PASSED
 // removeEdge is a private method the remove a specific edge struct
 func (g *Graph) removeEdge(e Edge) {
-    parent := e.Parent
-    child := e.Child
+    parent := e.Parent.Value
+    child := e.Child.Value
     g.RemoveUniEdge(parent, child)
     //TODO: Use a better encapsulation, now removeEdge (private) is calling
     //RemoveUniEdge (public)
-    
 }
 
 // GetDCMST function finds a Degree-Constrained Maximum Spanning Tree for a 
 // given graph and return it as a subgraph. The current implementation refers
 // to the learning automata method (JA 2013)
-func (g *Graph) GetDCMST(deg int) {
+func (g *Graph) GetDCMST(deg int) *Graph {
     // Starting by making an empty map from node to automata 
-    var wt float64 = 0
-    var nc int = 0
-    autos := make(map[string]Automata)
+    var wt int = 0
+    autos := make(map[string]*Automata)
     
     
     // Generate an isomorphic graph to g
     for k := range g.nodes {
 	nc := len(g.GetChildren(k))
-	autos[k] = NewAutomata(k, deg)
+	autos[k] = NewAutomata(nc, deg)
     }
     
     // Start to generate a MST
@@ -201,7 +232,8 @@ func (g *Graph) GetDCMST(deg int) {
 	    var hasActive bool = false
 	    for _, n := range children {
 		if !hasActive {
-		    hasActive = autos[n.Value].IsActive()
+		    val := n.Value
+		    hasActive = autos[val].IsActive()
 		} else {
 		    break //NOTE: Make sure break doesn't refer to the if statement
 		}
@@ -218,24 +250,24 @@ func (g *Graph) GetDCMST(deg int) {
 		// May need a more efficient algorithm
 		for !autos[child].IsActive() {
 		    i = a.ReEnum()
-		    child := children[i].Value
+		    child = children[i].Value
 		}
 		
 		e := g.edges[parent][child]
 		
 		// Reward and penalize based on a threshold value: delta, this 
 		// follows from JA (2013)
-		if e.weight < a.delta {
-		    a.delta = e.weight
+		if e.Weight < a.delta {
+		    a.delta = e.Weight
 		    a.Reward(i)
 		} else {
 		    a.Penalize(i)
 		}
 		
 		// Update the total weight and mst graph, and go back to loop
-		wt += e.weight
+		wt += e.Weight
 		mst.AddNode(child)
-		mst.AddUniEdge(parent, child, e.weight)
+		mst.AddUniEdge(parent, child, e.Weight)
 		parent = child
 		
 	    } else { // It means that a node is either at the tail or there is no
@@ -269,15 +301,15 @@ func (g *Graph) GetDCMST(deg int) {
 
 // Compare function compares to graphs and return the differences. Added nodes
 // and added edges are with respect to the target graph in the parameter. 
-func (g *Graph) Compare(t Graph) []Edge, []Edge {
+func (g *Graph) Compare(t Graph) ([]Edge, []Edge) {
     addedEdges := make([]Edge, 0)
     removedEdges := make([]Edge, 0)
     
     for key := range g.nodes {
 	edges := g.GetOutEdges(key)
 	for _, e := range edges {
-	    parent := e.Parent
-	    child := e.Child
+	    parent := e.Parent.Value
+	    child := e.Child.Value
 	    
 	    // If an edge that exists in g but doesn't exist in t, it means 
 	    // that this edge is an added edge in g
@@ -290,8 +322,8 @@ func (g *Graph) Compare(t Graph) []Edge, []Edge {
     for key := range t.nodes {
 	edges := t.GetOutEdges(key)
 	for _, e := range edges {
-	    parent := e.Parent
-	    child := e.Child
+	    parent := e.Parent.Value
+	    child := e.Child.Value
 	    
 	    // If an edge that exists in t but doesn't exist in g, it eans
 	    // that this edge is a removed edge in g
