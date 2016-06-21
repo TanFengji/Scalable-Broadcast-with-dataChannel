@@ -1,6 +1,5 @@
 package main
 
-import "fmt"
 // Graph struct represents a graph that is either undirectional or directional.
 // It may or may not have a head
 type Graph struct {
@@ -155,12 +154,8 @@ func (g *Graph) AddUniEdge(parent, child string, weight int) {
     g.SetNode(parent, p) // Remember to set node back to graph
   
     if _, exist := g.edges[parent]; exist {
-	fmt.Println("parent: " , parent)
-	fmt.Println("child: " , child)
 	g.edges[parent][child] = e
     } else {
-	fmt.Println("new map parent: " , parent)
-	fmt.Println("new map child: " , child)
 	g.edges[parent] = make(map[string]Edge)
 	g.edges[parent][child] = e
     }
