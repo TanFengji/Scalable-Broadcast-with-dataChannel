@@ -60,18 +60,12 @@ func (g *Graph) RemoveNode(s string) {
 	//Remove edges linked to it
 	edges := g.GetInEdges(s)
 	for _, e := range edges {
-	    parent := e.Parent.Value
-	    child := e.Child.Value
-	    //fmt.Println("removing in edge: ", parent, " ", child)
 	    g.removeEdge(e)
 	}
 	
 	//Remove edges linking out of it
 	outedges := g.GetOutEdges(s)
 	for _, e := range outedges {
-	    parent := e.Parent.Value
-	    child := e.Child.Value
-	    //fmt.Println("removing out edge: ", parent, " ", child)
 	    g.removeEdge(e)
 	}
 	
