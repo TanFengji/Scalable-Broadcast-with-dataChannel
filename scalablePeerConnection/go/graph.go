@@ -56,21 +56,26 @@ func (g *Graph) SetNode(s string, n Node) {
 // also removes the edges both linking in it and linking out of it`
 func (g *Graph) RemoveNode(s string) {
     if _, exist := g.nodes[s]; exist {
-	delete(g.nodes, s)
 	
 	//Remove edges linked to it
 	edges := g.GetInEdges(s)
 	for _, e := range edges {
-	    fmt.Println("removing in edge: ", e.Parent, " ", e.Child)
+	    parent := e.Parent.Value
+	    child := e.Child.Value
+	    //fmt.Println("removing in edge: ", parent, " ", child)
 	    g.removeEdge(e)
 	}
 	
 	//Remove edges linking out of it
-	edges = g.GetOutEdges(s)
-	for _, e := range edges {
-	    fmt.Println("removing out edge: ", e.Parent.Value, " ", e.Child.Value)
+	outedges := g.GetOutEdges(s)
+	for _, e := range outedges {
+	    parent := e.Parent.Value
+	    child := e.Child.Value
+	    //fmt.Println("removing out edge: ", parent, " ", child)
 	    g.removeEdge(e)
 	}
+	
+	delete(g.nodes, s)
     } 
     //TODO: Add error handling
 }

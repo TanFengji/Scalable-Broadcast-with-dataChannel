@@ -37,7 +37,7 @@ func (n *Node) RemoveEdge(e Edge) {
 // GetEdges returns all edges that are incident from a given node. Note that
 // the incoming edges to the node are not included in the returned results
 func (n *Node) GetEdges() []Edge {
-    edges := make([]Edge, 0)
+    edges := make([]Edge, 0, 100)
     for _, e := range n.edges {
 	edges = append(edges, e)
     }
