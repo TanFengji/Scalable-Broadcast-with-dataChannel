@@ -9,6 +9,8 @@ function AllConnection(){
 	var localVideo;
 	this.connection = {};
 	this.indicator = new Indicator();
+	this.ms = new MediaSource();
+	console.log(this.ms);
 }
 
 //initialise the setup of AllConnection
@@ -20,27 +22,29 @@ AllConnection.prototype.init = function(user, socket, config){
 
 //initialise the setup of own camera
 AllConnection.prototype.initCamera = function(cb){
+	var self = this;
 	this.localVideo = document.getElementById("localVideo");
+	this.localVideo.src = URL.createObjectURL(self.ms);
 	this.localVideo.autoplay = true;
-//	To Do: Problem: create 2 video when 2 users enter simultaneously
-	if (!localVideo.src){
-		var self = this;
-		if (this.indicator.hasUserMedia()) {
-			navigator.getUserMedia({ video: true, audio: true }, function (stream) {
-				self.localVideo.src = window.URL.createObjectURL(stream);
-				self.stream = stream;
-				cb();
+
+	self.ms.addEventListener('sourceopen', function(){
+		// this.readyState === 'open'. Add source buffer that expects webm chunks.
+		window.sourceBuffer = self.ms.addSourceBuffer('video/webm; codecs="vorbis,vp8"');
+
+//		To Do: Problem: create 2 video when 2 users enter simultaneously
+		if (self.indicator.hasUserMedia()) {
+			console.log(sourceBuffer);
+			navigator.getUserMedia({ video: true, audio: true }, function(stream){
+				self.startRecording(stream);
 			}, function (error) {
 				console.log(error);
 			});
+			console.log(self);
+			cb();
 		} else {
 			alert("Sorry, your browser does not support WebRTC.");
 		}
-	}
-	else {
-		console.log(this.stream);
-		cb();
-	}
+	});
 }
 
 //initialise a connection with peers
@@ -112,6 +116,126 @@ AllConnection.prototype.setIceServer = function(iceServers){
 
 AllConnection.prototype.setLocalStream = function(streamStatus){
 	this.stream = this.connection[streamStatus.host].stream;
+}
+
+/*
+	var chunks = [];
+	console.log('Starting...');
+	mediaRecorder = new MediaRecorder(stream);
+	setTimeout(function(){
+		mediaRecorder.stop();
+	}, 5000);
+	mediaRecorder.start();
+
+	mediaRecorder.ondataavailable = function(e) {
+		chunks.push(e.data);
+		console.log(e.data);
+		console.log(e);
+	};
+
+	mediaRecorder.onerror = function(e){
+		log('Error: ' + e);
+		console.log('Error: ', e);
+	};
+
+
+	mediaRecorder.onstart = function(){
+		console.log('Started, state = ' + mediaRecorder.state);
+	};
+
+	mediaRecorder.onstop = function(){
+		console.log('Stopped, state = ' + mediaRecorder.state);
+
+		var blob = new Blob(chunks, {type: "video/webm"});
+		chunks = [];
+
+		var videoURL = window.URL.createObjectURL(blob);
+		var downloadLink = document.getElementById("download");
+		console.log(videoURL);
+		self.localVideo.src = videoURL;
+		downloadLink.innerHTML = 'Download video file';
+
+		var rand = Math.floor((Math.random() * 10000000));
+		var name = "video_"+rand+".webm" ;
+		downloadLink.setAttribute( "href", videoURL);
+		downloadLink.setAttribute( "download", name);
+		downloadLink.setAttribute( "name", name);
+
+	};
+
+	mediaRecorder.onwarning = function(e){
+		console.log('Warning: ' + e);
+	};*/
+
+
+AllConnection.prototype.startRecording = function(stream) {
+	var self = this;
+	//self.localVideo.play();
+	console.log(this);
+	console.log("here");
+
+	console.log(sourceBuffer);
+//	sourceBuffer.mode = "sequence";
+	sourceBuffer.timestampOffset = 2.5;
+	console.log(sourceBuffer);
+	var chunks = [];
+	console.log('Starting...');
+	var mediaRecorder = new MediaRecorder(stream);
+	setTimeout(function(){
+		mediaRecorder.stop();
+	}, 7000);
+
+	mediaRecorder.start(500);
+
+	mediaRecorder.ondataavailable = function (e) {
+		var reader = new FileReader();
+		reader.addEventListener("loadend", function () {
+			var arr = new Uint8Array(reader.result);
+			try{
+				sourceBuffer.appendBuffer(arr);
+				console.log(sourceBuffer);
+				console.log("correct");
+			}catch(e){
+				console.log(e);
+			}
+		});
+		reader.readAsArrayBuffer(e.data);
+	};
+
+	mediaRecorder.onerror = function(e){
+		console.log('Error: ', e);
+	};
+
+
+	mediaRecorder.onstart = function(){
+		console.log('Started, state = ' + mediaRecorder.state);
+	};
+
+	mediaRecorder.onstop = function(){
+		console.log('Stopped, state = ' + mediaRecorder.state);
+		console.log(self.ms.sourceBuffers);
+		/*
+		var blob = new Blob(chunks, {type: "video/webm"});
+		chunks = [];
+
+		var videoURL = window.URL.createObjectURL(blob);
+		var downloadLink = document.getElementById("download");
+		console.log(videoURL);
+		self.localVideo.src = videoURL;
+		downloadLink.innerHTML = 'Download video file';
+
+		var rand = Math.floor((Math.random() * 10000000));
+		var name = "video_"+rand+".webm" ;
+		downloadLink.setAttribute( "href", videoURL);
+		downloadLink.setAttribute( "download", name);
+		downloadLink.setAttribute( "name", name);
+		 */
+	};
+
+	mediaRecorder.onwarning = function(e){
+		console.log('Warning: ' + e);
+	};
+
 }
 
 module.exports = AllConnection;
