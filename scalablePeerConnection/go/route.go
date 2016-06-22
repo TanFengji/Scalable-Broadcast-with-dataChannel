@@ -5,7 +5,7 @@ import (
     "encoding/json"
     "net"
     "bufio"
-    "sync"
+    //"sync"
 )
 
 type PeerInfo struct {
@@ -71,15 +71,17 @@ const (
     CONN_TYPE = "tcp"
 )
 
-var rooms map(string)chan UserInfo
+var rooms map[string]chan UserInfo
 var openRoom chan (chan UserInfo)
 var closeRoom chan (chan UserInfo)
+var ins chan Instruction
 
 func main() {
     // Listen for incoming connections.
     listener, err := net.Listen(CONN_TYPE, CONN_HOST+":"+CONN_PORT)
     queue := make(chan UserInfo, 10) // Buffered channel with capacity of 10
-    ins := make(chan Instruction, 10)
+    ins = make(chan Instruction, 10)
+    rooms = make(map[string]chan UserInfo, 0)
     //rooms = make(map[string]Room)
     
     if err != nil {
@@ -101,7 +103,7 @@ func main() {
 	// Handle connections in a new goroutine.
 	go handleRequests(conn, queue)
 	go handleTasks(queue) // Potentially need to increase the number of workers
-	go handleRooms(openRoom, closeRoom, ins)
+	//go handleRooms()
 	go handleInstructions(conn, ins)
     }
 }
@@ -131,15 +133,17 @@ func handleRooms() {
 	select {
 	case room := <- openRoom:
 	    go manageRoom(room)
+	/*
 	case room := <- closeRoom:
 	    room <- UserInfo{Type:"closeRoom"}
-	    delete(rooms, room)
+	    delete(rooms, Room)
+	*/
 	}
     }
 }
 
 func manageRoom(room <-chan UserInfo) {
-    defer close(room)
+    //defer close(room)
     
     var graph = new(Graph) // TODO: implement Graph
     var tree = new(Graph)
@@ -154,11 +158,11 @@ func manageRoom(room <-chan UserInfo) {
 	    graph.SetHead(username)
 	    ins <- Instruction{Type: "host", Host: username} 
 	    
-	    if userInfo.Latency { // may be unnecessary
+	    if userInfo.Latency != nil { // may be unnecessary
 		for _, p := range userInfo.Latency {
 		    peername := p.Peer
 		    weight := p.Latency
-		    graph.AddEdge(peername, username, weight)
+		    graph.AddUniEdge(peername, username, weight)
 		}
 	    }
 	    
@@ -168,13 +172,13 @@ func manageRoom(room <-chan UserInfo) {
 	    for _, p := range userInfo.Latency {
 		peername := p.Peer
 		weight := p.Latency
-		graph.AddEdge(peername, username, weight)
+		graph.AddUniEdge(peername, username, weight)
 	    }
 	    
 	case "disconnectedUser": 
 	    username := userInfo.User
-	    graph.deleteNode(username)
-	    if len(graph.Nodes) == 0 {
+	    graph.RemoveNode(username)
+	    if graph.GetTotalNodes() == 0 {
 		return
 	    }
 	
@@ -184,14 +188,14 @@ func manageRoom(room <-chan UserInfo) {
 	
 	newTree := graph.GetDCMST(2) // parameter is the constraint. 1 = traveling salesman, 2 means a hamitonian path problem aka maximum spanning binary tree 
 	    
-	addedEdges, removedEdges := newTree.Compare(tree)  // addedEdges, removedEdges := graph.Compare(tree, newTree) 
+	addedEdges, removedEdges := newTree.Compare(*tree)  // addedEdges, removedEdges := graph.Compare(tree, newTree) 
 	
 	for _, edge := range removedEdges {
-	    ins <- Instruction{Type:"deletePeerConnection", Parent: edge.Parent, Child: edge.Child}
+	    ins <- Instruction{Type:"deletePeerConnection", Parent: edge.Parent.Value, Child: edge.Child.Value}
 	}
 	
 	for _, edge := range addedEdges { // assuming addedEdges are sorted in good orders 
-	    ins <- Instruction{Type:"newPeerConnection", Parent: edge.Parent, Child: edge.Child}
+	    ins <- Instruction{Type:"newPeerConnection", Parent: edge.Parent.Value, Child: edge.Child.Value}
 	}
 	
 	tree = newTree
@@ -203,15 +207,15 @@ func handleTasks(queue <-chan UserInfo) {
 	userInfo := <- queue
 	
 	switch userInfo.Type {
-	case "newUser": newUserHandler(userInfo, ins); break;
-	case "host": newHostHandler(userInfo, ins); break;
-	case "disconnectedUser": disconnectHandler(userInfo, ins); break;
+	case "newUser": newUserHandler(userInfo); break;
+	case "host": newHostHandler(userInfo); break;
+	case "disconnectedUser": disconnectHandler(userInfo); break;
 	}
 	fmt.Printf("New task received -> Type: %s  User: %s  Room: %s\n", userInfo.Type, userInfo.User, userInfo.Room)
     }
 }
 
-func newUserHandler(userInfo UserInfo, ins chan<- Instruction) {
+func newUserHandler(userInfo UserInfo) {
     roomId := userInfo.Room
     if room, exist := rooms[roomId]; exist {
 	room <- userInfo
@@ -233,11 +237,13 @@ func newUserHandler(userInfo UserInfo, ins chan<- Instruction) {
 
 func newHostHandler(userInfo UserInfo) {
     roomId := userInfo.Room
+    fmt.Println("newHostHandlerCalled")
     if _, exist := rooms[roomId]; !exist {
 	room := make(chan UserInfo)
 	rooms[roomId] = room
-	openRoom <- room
-	room <- userInfo
+	//room <- userInfo
+	//openRoom <- room
+	ins <- Instruction{Type:"host", Host: userInfo.User}
     } else {
 	fmt.Println("ERR: newHostHandler - room already exists")
     }
@@ -252,7 +258,7 @@ func newHostHandler(userInfo UserInfo) {
 	*/
 }
 
-func disconnectHandler(userInfo UserInfo, ins chan<- Instruction) {
+func disconnectHandler(userInfo UserInfo) {
     roomId := userInfo.Room
     if room, exist := rooms[roomId]; exist {
 	room <- userInfo
@@ -273,8 +279,7 @@ func disconnectHandler(userInfo UserInfo, ins chan<- Instruction) {
 	}
 	fmt.Println(room.getUsers())
 	*/
-    }
-    else {
+    } else {
 	fmt.Println("ERR: disconnectHandler - disconnecting from a room non-existing")
     }
 }

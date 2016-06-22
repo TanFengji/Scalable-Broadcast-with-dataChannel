@@ -146,6 +146,10 @@ func (g *Graph) SetHead(s string) {
     //TODO: Add error handling
 }
 
+func (g *Graph) GetHead() Node {
+    return g.head
+}
+
 func (g *Graph) AddUniEdge(parent, child string, weight int) {
     p := g.GetNode(parent) //NOTE: Make sure it allows changing original value
     c := g.GetNode(child) 
