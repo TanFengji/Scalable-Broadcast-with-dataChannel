@@ -75,8 +75,8 @@ PeerConnection.prototype.onAddVideo = function(sdpOffer) {
 	// Add stream
 	var self = this;
 	this.p2pConnection.onaddstream = function (e) {
-		self.localVideo.src = window.URL.createObjectURL(e.stream);
 		self.setLocalStream(e.stream);
+		console.log(e.stream.getVideoTracks());
 	};
 	this.receiveOffer(sdpOffer, function(sdpAnswer){
 		sdpAnswer = JSON.stringify(sdpAnswer);

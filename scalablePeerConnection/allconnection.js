@@ -7,44 +7,45 @@ function AllConnection(){
 	var socket;
 	var configuration;
 	var localVideo;
+	var sourceBuffer;
 	this.connection = {};
 	this.indicator = new Indicator();
 	this.ms = new MediaSource();
-	console.log(this.ms);
 }
 
 //initialise the setup of AllConnection
 AllConnection.prototype.init = function(user, socket, config){
+	var self = this;
 	this.local = user;
 	this.socket = socket;
 	this.configuration = config;
+	this.localVideo = document.getElementById("localVideo");
+	this.localVideo.src = window.URL.createObjectURL(this.ms);
+	this.localVideo.autoplay = true;
+	this.ms.addEventListener('sourceopen', function(){
+		// this.readyState === 'open'. Add source buffer that expects webm chunks.
+		self.sourceBuffer = self.ms.addSourceBuffer('video/webm; codecs="vorbis,vp8"');
+		console.log(self.sourceBuffer);
+	});
 }
 
 //initialise the setup of own camera
-AllConnection.prototype.initCamera = function(cb){
+AllConnection.prototype.initCamera = function(){
 	var self = this;
-	this.localVideo = document.getElementById("localVideo");
-	this.localVideo.src = URL.createObjectURL(self.ms);
-	this.localVideo.autoplay = true;
 
-	self.ms.addEventListener('sourceopen', function(){
-		// this.readyState === 'open'. Add source buffer that expects webm chunks.
-		window.sourceBuffer = self.ms.addSourceBuffer('video/webm; codecs="vorbis,vp8"');
-
-//		To Do: Problem: create 2 video when 2 users enter simultaneously
-		if (self.indicator.hasUserMedia()) {
-			console.log(sourceBuffer);
-			navigator.getUserMedia({ video: true, audio: true }, function(stream){
-				self.startRecording(stream);
-			}, function (error) {
-				console.log(error);
-			});
-			console.log(self);
-			cb();
-		} else {
-			alert("Sorry, your browser does not support WebRTC.");
-		}
-	});
+//	To Do: Problem: create 2 video when 2 users enter simultaneously
+	if (self.indicator.hasUserMedia()) {
+		navigator.getUserMedia({ video: true, audio: true }, function(stream){
+			self.stream = stream;
+			console.log(stream);
+			console.log(stream.getVideoTracks());
+			self.localVideo.src = window.URL.createObjectURL(stream);
+		}, function (error) {
+			console.log(error);
+		});
+	} else {
+		alert("Sorry, your browser does not support WebRTC.");
+	}
 }
 
 //initialise a connection with peers
@@ -116,6 +117,7 @@ AllConnection.prototype.setIceServer = function(iceServers){
 
 AllConnection.prototype.setLocalStream = function(streamStatus){
 	this.stream = this.connection[streamStatus.host].stream;
+	this.startRecording(this.stream);
 }
 
 /*
@@ -126,43 +128,33 @@ AllConnection.prototype.setLocalStream = function(streamStatus){
 		mediaRecorder.stop();
 	}, 5000);
 	mediaRecorder.start();
-
 	mediaRecorder.ondataavailable = function(e) {
 		chunks.push(e.data);
 		console.log(e.data);
 		console.log(e);
 	};
-
 	mediaRecorder.onerror = function(e){
 		log('Error: ' + e);
 		console.log('Error: ', e);
 	};
-
-
 	mediaRecorder.onstart = function(){
 		console.log('Started, state = ' + mediaRecorder.state);
 	};
-
 	mediaRecorder.onstop = function(){
 		console.log('Stopped, state = ' + mediaRecorder.state);
-
 		var blob = new Blob(chunks, {type: "video/webm"});
 		chunks = [];
-
 		var videoURL = window.URL.createObjectURL(blob);
 		var downloadLink = document.getElementById("download");
 		console.log(videoURL);
 		self.localVideo.src = videoURL;
 		downloadLink.innerHTML = 'Download video file';
-
 		var rand = Math.floor((Math.random() * 10000000));
 		var name = "video_"+rand+".webm" ;
 		downloadLink.setAttribute( "href", videoURL);
 		downloadLink.setAttribute( "download", name);
 		downloadLink.setAttribute( "name", name);
-
 	};
-
 	mediaRecorder.onwarning = function(e){
 		console.log('Warning: ' + e);
 	};*/
@@ -170,31 +162,41 @@ AllConnection.prototype.setLocalStream = function(streamStatus){
 
 AllConnection.prototype.startRecording = function(stream) {
 	var self = this;
-	//self.localVideo.play();
+	console.log(stream);
+	console.log(stream.getVideoTracks());
 	console.log(this);
 	console.log("here");
+	//self.localVideo.play();
+	self.sourceBuffer.mode = "sequence";
+	self.tempFlag = true;
+	self.tempFlag2 = true;
 
-	console.log(sourceBuffer);
-//	sourceBuffer.mode = "sequence";
-	sourceBuffer.timestampOffset = 2.5;
-	console.log(sourceBuffer);
-	var chunks = [];
 	console.log('Starting...');
 	var mediaRecorder = new MediaRecorder(stream);
-	setTimeout(function(){
-		mediaRecorder.stop();
-	}, 7000);
-
-	mediaRecorder.start(500);
-
+	console.log(self.sourceBuffer);
+	mediaRecorder.start(100);
 	mediaRecorder.ondataavailable = function (e) {
+		console.log("hello??");
 		var reader = new FileReader();
 		reader.addEventListener("loadend", function () {
 			var arr = new Uint8Array(reader.result);
 			try{
-				sourceBuffer.appendBuffer(arr);
-				console.log(sourceBuffer);
+				//self.localVideo.readyState = 4;
+				if (self.localVideo.readyState == 4 && self.tempFlag == true) {
+					self.tempFlag = false;
+					self.localVideo.currentTime = 10;
+				}
+				if (self.localVideo.readyState == 1 && self.tempFlag2 == true) {
+					self.tempFlag2 = false;
+					self.localVideo.paused = false;
+				}
+
+
+				self.sourceBuffer.appendBuffer(arr);
 				console.log("correct");
+				console.log(self.localVideo.readyState);;
+				console.log(self.localVideo.currentTime);
+				console.log(self.localVideo.networkState)
 			}catch(e){
 				console.log(e);
 			}
@@ -217,13 +219,11 @@ AllConnection.prototype.startRecording = function(stream) {
 		/*
 		var blob = new Blob(chunks, {type: "video/webm"});
 		chunks = [];
-
 		var videoURL = window.URL.createObjectURL(blob);
 		var downloadLink = document.getElementById("download");
 		console.log(videoURL);
 		self.localVideo.src = videoURL;
 		downloadLink.innerHTML = 'Download video file';
-
 		var rand = Math.floor((Math.random() * 10000000));
 		var name = "video_"+rand+".webm" ;
 		downloadLink.setAttribute( "href", videoURL);

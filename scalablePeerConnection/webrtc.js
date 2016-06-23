@@ -96,8 +96,7 @@ function WebRTC(server){
 
 	self.socket.on("initCamera", function(){
 		console.log("init camera");
-		self.allConnection.initCamera(function(){
-		});
+		self.allConnection.initCamera();
 	})
 
 //	delete peer connection when peer left
