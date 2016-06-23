@@ -10,8 +10,7 @@ function AllConnection(){
 	var localVideo;
 	this.connection = {};
 	this.indicator = new Indicator();
-	this.ms = new MediaSource();
-	console.log(this.ms);
+	this.ms = new MediaSource()
 }
 
 //initialise the setup of AllConnection
@@ -26,10 +25,8 @@ AllConnection.prototype.initCamera = function(cb){
 	var self = this;
 	this.localVideo = document.getElementById("localVideo");
 	this.localVideo.src = URL.createObjectURL(self.ms);
-	//this.localVideo.autoplay = "true";
-	setTimeout(function(){
-	  self.localVideo.play();
-	}(), 5000);
+	this.localVideo.autoplay = true;
+	this.localVideo.play();
 
 	self.ms.addEventListener('sourceopen', function(){
 		// this.readyState === 'open'. Add source buffer that expects webm chunks.
@@ -174,31 +171,51 @@ AllConnection.prototype.setLocalStream = function(streamStatus){
 
 AllConnection.prototype.startRecording = function(stream) {
 	var self = this;
-	//self.localVideo.play();
 	console.log(this);
 	console.log("here");
-
+	//self.localVideo.play();
 	console.log(sourceBuffer);
-//	sourceBuffer.mode = "sequence";
-	sourceBuffer.timestampOffset = 0.5;
+	sourceBuffer.mode = "sequence";
+	//sourceBuffer.mode = "segments";
+	self.tempFlag = true;
+	self.tempFlag2 = true;
+	//sourceBuffer.timestampOffset = 0.06;
 	console.log(sourceBuffer);
 	var chunks = [];
 	console.log('Starting...');
 	var mediaRecorder = new MediaRecorder(stream);
+	/*
 	setTimeout(function(){
 		mediaRecorder.stop();
 	}, 7000);
+	*/
 
-	mediaRecorder.start(500);
-
+	mediaRecorder.start(100);
 	mediaRecorder.ondataavailable = function (e) {
 		var reader = new FileReader();
 		reader.addEventListener("loadend", function () {
 			var arr = new Uint8Array(reader.result);
 			try{
+				//self.localVideo.readyState = 4;
+			  if (self.localVideo.readyState == 4 && self.tempFlag == true) {
+			    self.tempFlag = false;
+			    self.localVideo.currentTime = 13;
+			  }
+			  if (self.localVideo.readyState == 1 && self.tempFlag2 == true) {
+			    self.tempFlag2 = false;
+			    self.localVideo.paused = false;
+			  }
+			  
+			  
 				sourceBuffer.appendBuffer(arr);
-				console.log(sourceBuffer);
 				console.log("correct");
+				console.log(sourceBuffer);
+				console.log(self.localVideo.readyState);
+				console.log(self.tempFlag);
+				console.log(self.tempFlag2);
+				console.log(self.localVideo.currentTime);
+				console.log(self.localVideo.preload);
+				console.log(self.localVideo.networkState)
 			}catch(e){
 				console.log(e);
 			}
