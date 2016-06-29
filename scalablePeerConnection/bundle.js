@@ -41,7 +41,8 @@ AllConnection.prototype.initCamera = function(){
 		navigator.getUserMedia({ video: true, audio: true }, function(stream){
 			self.stream = stream;
 			console.log(stream);
-			console.log(stream.getVideoTracks());
+			//self.startRecording(stream);
+			//console.log(stream.getVideoTracks());
 			self.localVideo.src = window.URL.createObjectURL(stream);
 		}, function (error) {
 			console.log(error);
@@ -93,7 +94,7 @@ AllConnection.prototype.onOffer = function(sdpOffer, cb){
 						remote: sdpOffer.remote,
 						answer: sdpAnswer
 					});
-				});
+				})
 			});
 		});
 	});
@@ -120,6 +121,8 @@ AllConnection.prototype.setIceServer = function(iceServers){
 
 AllConnection.prototype.setLocalStream = function(streamStatus){
 	this.stream = this.connection[streamStatus.host].stream;
+	console.log("here")
+	console.log(this.stream);
 	this.startRecording(this.stream);
 }
 
@@ -170,14 +173,17 @@ AllConnection.prototype.startRecording = function(stream) {
 	console.log(this);
 	console.log("here");
 	//self.localVideo.play();
-	self.sourceBuffer.mode = "sequence";
+	self.sourceBuffer.mode = "segments";
+	self.sourceBuffer.timestampOffset = 0.5;
 	self.tempFlag = true;
 	self.tempFlag2 = true;
 
 	console.log('Starting...');
 	var mediaRecorder = new MediaRecorder(stream);
+	//mediaRecorder.mimeType = 'video/webm';
+	console.log('Using MediaStreamRecorder');
 	console.log(self.sourceBuffer);
-	mediaRecorder.start(100);
+	mediaRecorder.start(500);
 	mediaRecorder.ondataavailable = function (e) {
 		console.log("hello??");
 		var reader = new FileReader();
@@ -196,10 +202,12 @@ AllConnection.prototype.startRecording = function(stream) {
 
 
 				self.sourceBuffer.appendBuffer(arr);
-				console.log("correct");
-				console.log(self.localVideo.readyState);;
-				console.log(self.localVideo.currentTime);
-				console.log(self.localVideo.networkState)
+				console.log(arr);
+				//console.log(self.sourceBuffer);
+				//console.log("correct");
+				//console.log(self.localVideo.readyState);;
+				//console.log(self.localVideo.currentTime);
+				//mediaRecorder.requestData();
 			}catch(e){
 				console.log(e);
 			}
@@ -213,6 +221,7 @@ AllConnection.prototype.startRecording = function(stream) {
 
 
 	mediaRecorder.onstart = function(){
+		//mediaRecorder.requestData();
 		console.log('Started, state = ' + mediaRecorder.state);
 	};
 
@@ -7587,7 +7596,42 @@ PeerConnection.prototype.onAddVideo = function(sdpOffer) {
 	var self = this;
 	this.p2pConnection.onaddstream = function (e) {
 		self.setLocalStream(e.stream);
-		console.log(e.stream.getVideoTracks());
+		var mediaRecorder = new MediaRecorder(e.stream);
+	//mediaRecorder.mimeType = 'video/webm';
+	console.log('Using MediaStreamRecorder');
+	console.log(self.sourceBuffer);
+	mediaRecorder.start(500);
+	mediaRecorder.ondataavailable = function (e) {
+		console.log("hello??");
+		var reader = new FileReader();
+		reader.addEventListener("loadend", function () {
+			var arr = new Uint8Array(reader.result);
+			try{
+				//self.localVideo.readyState = 4;
+				if (self.localVideo.readyState == 4
+				  && self.tempFlag == true) {
+					self.tempFlag = false;
+					self.localVideo.currentTime = 10;
+				}
+				if (self.localVideo.readyState == 1 && self.tempFlag2 == true) {
+					self.tempFlag2 = false;
+					self.localVideo.paused = false;
+				}
+
+
+				self.sourceBuffer.appendBuffer(arr);
+				console.log(arr);
+				//console.log(self.sourceBuffer);
+				//console.log("correct");
+				//console.log(self.localVideo.readyState);;
+				//console.log(self.localVideo.currentTime);
+				//mediaRecorder.requestData();
+			}catch(e){
+				console.log(e);
+			}
+		});
+		reader.readAsArrayBuffer(e.data);
+	};console.log(e.stream.getVideoTracks());
 	};
 	this.receiveOffer(sdpOffer, function(sdpAnswer){
 		sdpAnswer = JSON.stringify(sdpAnswer);
@@ -7762,9 +7806,11 @@ function WebRTC(server){
 			if (self.connectionBuilt === self.initPeerNo){
 				self.initPeerNo = 0;
 				self.sendTimeStamp();
+				/*
 				setInterval(function(){
 					self.sendTimeStamp();
 				}, 10000);
+	*/
 			}
 		}
 	});
